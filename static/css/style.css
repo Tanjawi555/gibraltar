@@ -1,10 +1,43 @@
 body {
     font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
-    background-color: #f8f9fa;
+    background-color: #f5f7fa;
 }
 
 body.rtl {
     font-family: "Segoe UI", Tahoma, Arial, sans-serif;
+}
+
+.stat-card {
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.stat-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.1) !important;
+}
+
+.stat-icon {
+    width: 60px;
+    height: 60px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.5rem;
+}
+
+.stat-icon-lg {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.notification-icon {
+    width: 45px;
+    height: 45px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.25rem;
 }
 
 .navbar-brand {
