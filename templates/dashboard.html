@@ -1,0 +1,119 @@
+{% extends "base.html" %}
+
+{% block content %}
+<h2 class="mb-4"><i class="bi bi-speedometer2"></i> {{ t.dashboard }}</h2>
+
+<div class="row g-4 mb-4">
+    <div class="col-6 col-md-3">
+        <div class="card bg-primary text-white h-100">
+            <div class="card-body text-center">
+                <i class="bi bi-car-front display-4"></i>
+                <h3 class="mt-2">{{ car_stats.total }}</h3>
+                <p class="mb-0">{{ t.total_cars }}</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-6 col-md-3">
+        <div class="card bg-success text-white h-100">
+            <div class="card-body text-center">
+                <i class="bi bi-check-circle display-4"></i>
+                <h3 class="mt-2">{{ car_stats.available }}</h3>
+                <p class="mb-0">{{ t.available }}</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-6 col-md-3">
+        <div class="card bg-warning text-dark h-100">
+            <div class="card-body text-center">
+                <i class="bi bi-clock display-4"></i>
+                <h3 class="mt-2">{{ car_stats.reserved }}</h3>
+                <p class="mb-0">{{ t.reserved }}</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-6 col-md-3">
+        <div class="card bg-info text-white h-100">
+            <div class="card-body text-center">
+                <i class="bi bi-key display-4"></i>
+                <h3 class="mt-2">{{ car_stats.rented }}</h3>
+                <p class="mb-0">{{ t.rented }}</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row g-4 mb-4">
+    <div class="col-md-4">
+        <div class="card bg-danger text-white h-100">
+            <div class="card-body text-center">
+                <i class="bi bi-cash-stack display-4"></i>
+                <h3 class="mt-2">{{ "%.2f"|format(total_expenses) }}</h3>
+                <p class="mb-0">{{ t.total_expenses }}</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card bg-secondary text-white h-100">
+            <div class="card-body text-center">
+                <i class="bi bi-wallet2 display-4"></i>
+                <h3 class="mt-2">{{ "%.2f"|format(total_revenue) }}</h3>
+                <p class="mb-0">{{ t.total_revenue }}</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card {% if total_profit >= 0 %}bg-success{% else %}bg-danger{% endif %} text-white h-100">
+            <div class="card-body text-center">
+                <i class="bi bi-graph-up-arrow display-4"></i>
+                <h3 class="mt-2">{{ "%.2f"|format(total_profit) }}</h3>
+                <p class="mb-0">{{ t.total_profit }}</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-header bg-dark text-white">
+        <h5 class="mb-0">
+            <i class="bi bi-bell"></i> {{ t.notifications }}
+            {% if notifications %}
+            <span class="badge bg-danger">{{ notifications|length }}</span>
+            {% endif %}
+        </h5>
+    </div>
+    <div class="card-body">
+        {% if notifications %}
+        <div class="list-group">
+            {% for notif in notifications %}
+            <div class="list-group-item list-group-item-{{ notif.severity }}">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        {% if notif.type == 'start_today' %}
+                        <i class="bi bi-calendar-event"></i> <strong>{{ t.start_today }}</strong>
+                        {% elif notif.type == 'start_tomorrow' %}
+                        <i class="bi bi-calendar-plus"></i> <strong>{{ t.start_tomorrow }}</strong>
+                        {% elif notif.type == 'return_today' %}
+                        <i class="bi bi-calendar-check"></i> <strong>{{ t.return_today }}</strong>
+                        {% elif notif.type == 'overdue' %}
+                        <i class="bi bi-exclamation-triangle"></i> <strong>{{ t.overdue }}</strong>
+                        {% endif %}
+                        <br>
+                        <small>
+                            {{ notif.rental.model }} ({{ notif.rental.plate_number }}) - {{ notif.rental.full_name }}
+                        </small>
+                    </div>
+                    <span class="badge bg-{{ notif.severity }}">
+                        {{ notif.rental.start_date }} &rarr; {{ notif.rental.return_date }}
+                    </span>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <p class="text-muted text-center mb-0">
+            <i class="bi bi-check-circle"></i> {{ t.no_notifications }}
+        </p>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

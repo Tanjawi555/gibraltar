@@ -1,0 +1,37 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="row justify-content-center mt-5">
+    <div class="col-md-4 col-lg-3">
+        <div class="card shadow">
+            <div class="card-header bg-primary text-white text-center">
+                <h4><i class="bi bi-car-front-fill"></i> {{ t.app_name }}</h4>
+            </div>
+            <div class="card-body">
+                <h5 class="text-center mb-4">{{ t.login }}</h5>
+                <form method="POST">
+                    <div class="mb-3">
+                        <label for="username" class="form-label">{{ t.username }}</label>
+                        <input type="text" class="form-control" id="username" name="username" required autofocus>
+                    </div>
+                    <div class="mb-3">
+                        <label for="password" class="form-label">{{ t.password }}</label>
+                        <input type="password" class="form-control" id="password" name="password" required>
+                    </div>
+                    <button type="submit" class="btn btn-primary w-100">{{ t.login_btn }}</button>
+                </form>
+                
+                <hr>
+                <div class="text-center">
+                    <small class="text-muted">{{ t.language }}:</small>
+                    <div class="btn-group btn-group-sm mt-2">
+                        <a href="{{ url_for('set_language', lang='ar') }}" class="btn btn-outline-secondary {% if current_lang == 'ar' %}active{% endif %}">{{ t.arabic }}</a>
+                        <a href="{{ url_for('set_language', lang='en') }}" class="btn btn-outline-secondary {% if current_lang == 'en' %}active{% endif %}">{{ t.english }}</a>
+                        <a href="{{ url_for('set_language', lang='fr') }}" class="btn btn-outline-secondary {% if current_lang == 'fr' %}active{% endif %}">{{ t.french }}</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

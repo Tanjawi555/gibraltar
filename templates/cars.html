@@ -1,0 +1,104 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2><i class="bi bi-car-front"></i> {{ t.cars }}</h2>
+    <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addCarModal">
+        <i class="bi bi-plus-circle"></i> {{ t.add_car }}
+    </button>
+</div>
+
+<div class="card">
+    <div class="card-body">
+        {% if cars %}
+        <div class="table-responsive">
+            <table class="table table-hover">
+                <thead class="table-dark">
+                    <tr>
+                        <th>#</th>
+                        <th>{{ t.car_model }}</th>
+                        <th>{{ t.plate_number }}</th>
+                        <th>{{ t.status }}</th>
+                        <th>{{ t.actions }}</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for car in cars %}
+                    <tr>
+                        <td>{{ loop.index }}</td>
+                        <td>{{ car.model }}</td>
+                        <td><code>{{ car.plate_number }}</code></td>
+                        <td>
+                            {% if car.status == 'available' %}
+                            <span class="badge bg-success">{{ t.available }}</span>
+                            {% elif car.status == 'rented' %}
+                            <span class="badge bg-info">{{ t.rented }}</span>
+                            {% elif car.status == 'reserved' %}
+                            <span class="badge bg-warning text-dark">{{ t.reserved }}</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <div class="btn-group btn-group-sm">
+                                {% if car.status != 'available' %}
+                                <a href="{{ url_for('update_car_status', car_id=car.id, status='available') }}" 
+                                   class="btn btn-outline-success" title="{{ t.available }}">
+                                    <i class="bi bi-check-circle"></i>
+                                </a>
+                                {% endif %}
+                                {% if car.status != 'reserved' %}
+                                <a href="{{ url_for('update_car_status', car_id=car.id, status='reserved') }}" 
+                                   class="btn btn-outline-warning" title="{{ t.reserved }}">
+                                    <i class="bi bi-clock"></i>
+                                </a>
+                                {% endif %}
+                                {% if car.status != 'rented' %}
+                                <a href="{{ url_for('update_car_status', car_id=car.id, status='rented') }}" 
+                                   class="btn btn-outline-info" title="{{ t.rented }}">
+                                    <i class="bi bi-key"></i>
+                                </a>
+                                {% endif %}
+                                <a href="{{ url_for('delete_car', car_id=car.id) }}" 
+                                   class="btn btn-outline-danger" 
+                                   onclick="return confirm('{{ t.confirm_delete }}')">
+                                    <i class="bi bi-trash"></i>
+                                </a>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <p class="text-muted text-center mb-0">{{ t.no_data }}</p>
+        {% endif %}
+    </div>
+</div>
+
+<div class="modal fade" id="addCarModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form method="POST">
+                <div class="modal-header">
+                    <h5 class="modal-title">{{ t.add_car }}</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="model" class="form-label">{{ t.car_model }}</label>
+                        <input type="text" class="form-control" id="model" name="model" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="plate_number" class="form-label">{{ t.plate_number }}</label>
+                        <input type="text" class="form-control" id="plate_number" name="plate_number" required>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">{{ t.cancel }}</button>
+                    <button type="submit" class="btn btn-primary">{{ t.save }}</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,83 @@
+{% extends "base.html" %}
+
+{% block content %}
+<h2 class="mb-4"><i class="bi bi-graph-up-arrow"></i> {{ t.profit_overview }}</h2>
+
+<div class="row g-4 mb-4">
+    <div class="col-md-4">
+        <div class="card bg-secondary text-white h-100">
+            <div class="card-body text-center">
+                <i class="bi bi-wallet2 display-4"></i>
+                <h3 class="mt-2">{{ "%.2f"|format(total_revenue) }}</h3>
+                <p class="mb-0">{{ t.revenue }}</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card bg-danger text-white h-100">
+            <div class="card-body text-center">
+                <i class="bi bi-cash-stack display-4"></i>
+                <h3 class="mt-2">{{ "%.2f"|format(total_expenses) }}</h3>
+                <p class="mb-0">{{ t.total_expenses }}</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card {% if total_profit >= 0 %}bg-success{% else %}bg-danger{% endif %} text-white h-100">
+            <div class="card-body text-center">
+                <i class="bi bi-graph-up-arrow display-4"></i>
+                <h3 class="mt-2">{{ "%.2f"|format(total_profit) }}</h3>
+                <p class="mb-0">{{ t.net_profit }}</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-header bg-dark text-white">
+        <h5 class="mb-0"><i class="bi bi-list-ul"></i> {{ t.rentals }}</h5>
+    </div>
+    <div class="card-body">
+        {% if rentals %}
+        <div class="table-responsive">
+            <table class="table table-hover">
+                <thead class="table-light">
+                    <tr>
+                        <th>#</th>
+                        <th>{{ t.car_model }}</th>
+                        <th>{{ t.full_name }}</th>
+                        <th>{{ t.start_date }}</th>
+                        <th>{{ t.return_date }}</th>
+                        <th>{{ t.rental_price }}</th>
+                        <th>{{ t.status }}</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for rental in rentals %}
+                    <tr>
+                        <td>{{ loop.index }}</td>
+                        <td>{{ rental.car_model }} <small class="text-muted">({{ rental.plate_number }})</small></td>
+                        <td>{{ rental.client_name }}</td>
+                        <td>{{ rental.start_date }}</td>
+                        <td>{{ rental.return_date }}</td>
+                        <td><strong>{{ "%.2f"|format(rental.rental_price) }}</strong></td>
+                        <td>
+                            {% if rental.status == 'reserved' %}
+                            <span class="badge bg-warning text-dark">{{ t.reserved }}</span>
+                            {% elif rental.status == 'rented' %}
+                            <span class="badge bg-info">{{ t.rented }}</span>
+                            {% elif rental.status == 'returned' %}
+                            <span class="badge bg-success">{{ t.returned }}</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <p class="text-muted text-center mb-0">{{ t.no_data }}</p>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
