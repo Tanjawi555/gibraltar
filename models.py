@@ -85,11 +85,11 @@ def init_db():
     if cursor.fetchone()[0] == 0:
         cursor.execute(
             "INSERT INTO users (username, password_hash) VALUES (?, ?)",
-            ('admin', generate_password_hash('admin123'))
+            ('admin', generate_password_hash('admin1234'))
         )
         cursor.execute(
             "INSERT INTO users (username, password_hash) VALUES (?, ?)",
-            ('manager', generate_password_hash('manager123'))
+            ('manager', generate_password_hash('manager1234'))
         )
         conn.commit()
     
