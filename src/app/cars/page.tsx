@@ -29,6 +29,12 @@ export default function CarsPage() {
   const [formData, setFormData] = useState({ model: '', plate_number: '' });
   const [message, setMessage] = useState<{ type: string; text: string } | null>(null);
 
+  // Pagination and Search states
+  const [page, setPage] = useState(1);
+  const [total, setTotal] = useState(0);
+  const [search, setSearch] = useState('');
+  const limit = 20;
+
   useEffect(() => {
     const savedLang = localStorage.getItem('lang') as Language;
     if (savedLang && ['ar', 'en', 'fr'].includes(savedLang)) {
@@ -45,15 +51,22 @@ export default function CarsPage() {
   }, [status, router]);
 
   useEffect(() => {
-    if (session) fetchCars();
-  }, [session]);
+    if (status === 'authenticated') {
+      const timer = setTimeout(() => {
+        fetchCars();
+      }, 300);
+      return () => clearTimeout(timer);
+    }
+  }, [status, page, search]);
 
   const fetchCars = async () => {
+    // setLoading(true); // Don't set loading to true on every keystroke/page change to avoid flickering, or handle gracefully
     try {
-      const res = await fetch('/api/cars');
+      const res = await fetch(`/api/cars?page=${page}&limit=${limit}&search=${encodeURIComponent(search)}`);
       if (res.ok) {
         const data = await res.json();
-        setCars(data);
+        setCars(data.cars);
+        setTotal(data.total);
       }
     } catch (error) {
       console.error('Failed to fetch cars:', error);
@@ -133,7 +146,7 @@ export default function CarsPage() {
     setShowModal(true);
   };
 
-  if (status === 'loading' || loading) {
+  if (status === 'loading') {
     return (
       <div className="d-flex justify-content-center align-items-center" style={{ minHeight: '100vh' }}>
         <div className="spinner-border text-primary" role="status">
@@ -156,78 +169,122 @@ export default function CarsPage() {
           </div>
         )}
 
-        <div className="d-flex justify-content-between align-items-center mb-4">
-          <h2><i className="bi bi-car-front"></i> {t.cars}</h2>
-          <button className="btn btn-primary" onClick={() => { setEditingCar(null); setFormData({ model: '', plate_number: '' }); setShowModal(true); }}>
-            <i className="bi bi-plus-circle"></i> {t.add_car}
+        {/* Header Section */}
+        <div className="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2 animate-fade-in-up">
+          <div>
+              <h2 className="fw-bold mb-1"><i className="bi bi-car-front text-primary me-2"></i>{t.cars}</h2>
+              <p className="text-muted mb-0">{t.total_cars}: {total}</p>
+          </div>
+          <button className="btn btn-primary d-flex align-items-center shadow-sm" onClick={() => { setEditingCar(null); setFormData({ model: '', plate_number: '' }); setShowModal(true); }}>
+            <i className="bi bi-plus-lg me-2"></i> {t.add_car}
           </button>
         </div>
 
-        <div className="card">
-          <div className="card-body">
-            {cars.length > 0 ? (
+        {/* Search Bar */}
+        <div className="card border-0 shadow-sm mb-4 animate-fade-in-up delay-1" style={{borderRadius: '1rem', overflow: 'hidden'}}>
+          <div className="card-body p-2">
+            <div className="input-group input-group-lg border-0">
+               <span className="input-group-text bg-transparent border-0 ps-3"><i className="bi bi-search text-muted"></i></span>
+              <input 
+                type="text" 
+                className="form-control border-0 shadow-none bg-transparent" 
+                placeholder={t.car_model || "Search cars..."} 
+                value={search} 
+                onChange={(e) => { setSearch(e.target.value); setPage(1); }} 
+              />
+            </div>
+          </div>
+        </div>
+
+        {/* Cars Table */}
+        <div className="dashboard-card animate-fade-in-up delay-2" style={{overflow: 'hidden'}}>
+          <div className="card-body p-0">
+            {loading && cars.length === 0 ? (
+               <div className="p-5 text-center">
+                 <div className="spinner-border text-primary" role="status">
+                   <span className="visually-hidden">Loading...</span>
+                 </div>
+               </div>
+            ) : cars.length > 0 ? (
+              <>
               <div className="table-responsive">
-                <table className="table table-hover">
-                  <thead className="table-dark">
+                <table className="table table-hover mb-0 align-middle">
+                  <thead className="bg-light">
                     <tr>
-                      <th>#</th>
-                      <th>{t.car_model}</th>
-                      <th>{t.plate_number}</th>
-                      <th>{t.status}</th>
-                      <th>{t.actions}</th>
+                      <th className="border-0 py-3 ps-4 text-secondary text-uppercase small bg-transparent">#</th>
+                      <th className="border-0 py-3 text-secondary text-uppercase small bg-transparent">{t.car_model}</th>
+                      <th className="border-0 py-3 text-secondary text-uppercase small bg-transparent d-none d-md-table-cell">{t.plate_number}</th>
+                      <th className="border-0 py-3 text-secondary text-uppercase small bg-transparent">{t.status}</th>
+                      <th className="border-0 py-3 text-secondary text-uppercase small bg-transparent text-end pe-4">{t.actions}</th>
                     </tr>
                   </thead>
                   <tbody>
                     {cars.map((car, index) => (
-                      <tr key={car._id}>
-                        <td>{index + 1}</td>
-                        <td>{car.model}</td>
-                        <td><code>{car.plate_number}</code></td>
+                      <tr key={car._id} className="border-bottom border-light">
+                        <td className="ps-4 fw-medium text-muted">{index + 1 + (page - 1) * limit}</td>
                         <td>
-                          {car.status === 'available' && <span className="badge bg-success">{t.available}</span>}
+                          <div className="d-flex align-items-center">
+                              <div className="rounded-circle bg-primary bg-opacity-10 text-primary p-2 me-3 d-flex align-items-center justify-content-center" style={{width: '40px', height: '40px'}}>
+                                <i className="bi bi-car-front-fill"></i>
+                              </div>
+                              <div>
+                                <div className="fw-bold text-dark">{car.model}</div>
+                                <div className="d-md-none small text-muted font-monospace mt-1">{car.plate_number}</div>
+                              </div>
+                          </div>
+                        </td>
+                        <td className="d-none d-md-table-cell">
+                            <span className="font-monospace bg-light px-2 py-1 rounded text-secondary border">
+                                {car.plate_number}
+                            </span>
+                        </td>
+                        <td>
+                          {car.status === 'available' && <span className="badge bg-success bg-opacity-10 text-success rounded-pill px-3 py-2">{t.available}</span>}
                           {car.status === 'rented' && (
                             <div className="d-flex flex-column align-items-start">
-                              <span className="badge bg-info mb-1">{t.rented}</span>
+                              <span className="badge bg-info bg-opacity-10 text-info rounded-pill px-3 py-2 mb-1">{t.rented}</span>
                               {car.current_rental && (
-                                <small className="text-muted" style={{ fontSize: '0.75rem' }}>
-                                  {car.current_rental.start_date} <i className="bi bi-arrow-right-short"></i> {car.current_rental.return_date}
+                                <small className="text-muted d-flex align-items-center" style={{ fontSize: '0.7rem' }}>
+                                  <i className="bi bi-calendar3 me-1"></i>
+                                  {car.current_rental.start_date} <i className="bi bi-arrow-right-short mx-1"></i> {car.current_rental.return_date}
                                 </small>
                               )}
                             </div>
                           )}
                           {car.status === 'reserved' && (
                              <div className="d-flex flex-column align-items-start">
-                              <span className="badge bg-warning text-dark mb-1">{t.reserved}</span>
+                              <span className="badge bg-warning bg-opacity-10 text-warning rounded-pill px-3 py-2 mb-1">{t.reserved}</span>
                               {car.current_rental && (
-                                <small className="text-muted" style={{ fontSize: '0.75rem' }}>
-                                  {car.current_rental.start_date} <i className="bi bi-arrow-right-short"></i> {car.current_rental.return_date}
+                                <small className="text-muted d-flex align-items-center" style={{ fontSize: '0.7rem' }}>
+                                  <i className="bi bi-calendar3 me-1"></i>
+                                  {car.current_rental.start_date} <i className="bi bi-arrow-right-short mx-1"></i> {car.current_rental.return_date}
                                 </small>
                               )}
                             </div>
                           )}
                         </td>
-                        <td>
-                          <div className="btn-group btn-group-sm">
+                        <td className="text-end pe-4">
+                          <div className="btn-group">
                             {car.status !== 'available' && (
-                              <button onClick={() => handleStatusChange(car._id, 'available')} className="btn btn-outline-success" title={t.available}>
-                                <i className="bi bi-check-circle"></i>
+                              <button onClick={() => handleStatusChange(car._id, 'available')} className="btn btn-sm btn-light text-success me-1" title={t.available} data-bs-toggle="tooltip">
+                                <i className="bi bi-check-circle-fill fs-6"></i>
                               </button>
                             )}
                             {car.status !== 'reserved' && (
-                              <button onClick={() => handleStatusChange(car._id, 'reserved')} className="btn btn-outline-warning" title={t.reserved}>
-                                <i className="bi bi-clock"></i>
+                              <button onClick={() => handleStatusChange(car._id, 'reserved')} className="btn btn-sm btn-light text-warning me-1" title={t.reserved}>
+                                <i className="bi bi-clock-fill fs-6"></i>
                               </button>
                             )}
                             {car.status !== 'rented' && (
-                              <button onClick={() => handleStatusChange(car._id, 'rented')} className="btn btn-outline-info" title={t.rented}>
-                                <i className="bi bi-key"></i>
+                              <button onClick={() => handleStatusChange(car._id, 'rented')} className="btn btn-sm btn-light text-info me-1" title={t.rented}>
+                                <i className="bi bi-key-fill fs-6"></i>
                               </button>
                             )}
-                            <button onClick={() => openEditModal(car)} className="btn btn-outline-secondary" title={t.edit}>
-                              <i className="bi bi-pencil"></i>
+                            <button onClick={() => openEditModal(car)} className="btn btn-sm btn-light text-primary me-1" title={t.edit}>
+                              <i className="bi bi-pencil-fill fs-6"></i>
                             </button>
-                            <button onClick={() => handleDelete(car._id)} className="btn btn-outline-danger">
-                              <i className="bi bi-trash"></i>
+                            <button onClick={() => handleDelete(car._id)} className="btn btn-sm btn-light text-danger" title={t.delete}>
+                              <i className="bi bi-trash-fill fs-6"></i>
                             </button>
                           </div>
                         </td>
@@ -236,8 +293,34 @@ export default function CarsPage() {
                   </tbody>
                 </table>
               </div>
+              
+              {/* Pagination */}
+              {total > limit && (
+                <div className="d-flex justify-content-center py-4 border-top">
+                  <nav>
+                    <ul className="pagination pagination-sm mb-0 gap-1">
+                      <li className={`page-item ${page === 1 ? 'disabled' : ''}`}>
+                        <button className="page-link rounded border-0 bg-light text-dark shadow-none" onClick={() => setPage(page - 1)}>&laquo;</button>
+                      </li>
+                      <li className="page-item disabled">
+                        <span className="page-link border-0 bg-transparent fw-medium text-muted">{page} / {Math.ceil(total / limit)}</span>
+                      </li>
+                      <li className={`page-item ${page * limit >= total ? 'disabled' : ''}`}>
+                         <button className="page-link rounded border-0 bg-light text-dark shadow-none" onClick={() => setPage(page + 1)}>&raquo;</button>
+                      </li>
+                    </ul>
+                  </nav>
+                </div>
+              )}
+              </>
             ) : (
-              <p className="text-muted text-center mb-0">{t.no_data}</p>
+                <div className="text-center py-5">
+                    <div className="mb-3 opacity-25">
+                      <i className="bi bi-car-front" style={{ fontSize: '4rem' }}></i>
+                    </div>
+                    <h5 className="text-muted fw-medium">{t.no_data}</h5>
+                    <p className="text-muted small">Try adding a new car to get started.</p>
+                </div>
             )}
           </div>
         </div>

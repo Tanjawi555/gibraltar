@@ -3,18 +3,33 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { RentalModel, CarModel, ClientModel } from '@/lib/models';
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   const session = await getServerSession(authOptions);
   if (!session) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
-  const rentals = await RentalModel.getAll();
-  const cars = await CarModel.getAll();
-  const clients = await ClientModel.getAll();
+  const { searchParams } = new URL(request.url);
+  const page = parseInt(searchParams.get('page') || '1');
+  const limit = parseInt(searchParams.get('limit') || '20');
+  const search = searchParams.get('search') || '';
+
+  const [paginatedData, cars, clients] = await Promise.all([
+    RentalModel.getPaginated(page, limit, search),
+    CarModel.getAll(),
+    ClientModel.getAll()
+  ]);
+
   const availableCars = cars.filter(car => car.status === 'available');
 
-  return NextResponse.json({ rentals, availableCars, clients });
+  return NextResponse.json({ 
+    rentals: paginatedData.rentals, 
+    total: paginatedData.total,
+    page: paginatedData.page,
+    limit: paginatedData.limit,
+    availableCars, 
+    clients 
+  });
 }
 
 export async function POST(request: NextRequest) {

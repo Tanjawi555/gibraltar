@@ -91,70 +91,118 @@ export default function ProfitsPage() {
     <>
       <Navbar t={t} currentLang={lang} isRtl={isRTL(lang)} onLanguageChange={handleLanguageChange} />
       <div className="container-fluid py-4">
-        <h2 className="mb-4"><i className="bi bi-graph-up-arrow"></i> {t.profit_overview}</h2>
+        
+        {/* Header Section */}
+        <div className="d-flex justify-content-between align-items-center mb-4 animate-fade-in-up">
+           <div>
+               <h2 className="fw-bold mb-1"><i className="bi bi-graph-up-arrow text-primary me-2"></i>{t.profit_overview}</h2>
+               <p className="text-muted mb-0">{t.app_name}</p>
+           </div>
+        </div>
 
-        <div className="row g-4 mb-4">
+        {/* Summary Cards */}
+        <div className="row g-4 mb-4 animate-fade-in-up delay-1">
           <div className="col-md-4">
-            <div className="card bg-secondary text-white h-100">
-              <div className="card-body text-center">
-                <i className="bi bi-wallet2 display-4"></i>
-                <h3 className="mt-2">{(data?.totalRevenue || 0).toFixed(2)}</h3>
-                <p className="mb-0">{t.revenue}</p>
+            <div className="card border-0 shadow-sm h-100" style={{background: 'linear-gradient(45deg, #4e73df 0%, #224abe 100%)', color: 'white'}}>
+              <div className="card-body p-4 d-flex align-items-center justify-content-between">
+                <div>
+                  <h6 className="text-uppercase mb-2 opacity-75 fw-bold" style={{fontSize: '0.8rem'}}>{t.revenue}</h6>
+                  <h3 className="mb-0 fw-bold display-6">{(data?.totalRevenue || 0).toFixed(2)} <span className="fs-6 opacity-75">DZD</span></h3>
+                </div>
+                <div className="rounded-circle bg-white bg-opacity-25 p-3 d-flex align-items-center justify-content-center" style={{width: '60px', height: '60px'}}>
+                   <i className="bi bi-wallet2 fs-2 text-white"></i>
+                </div>
               </div>
             </div>
           </div>
           <div className="col-md-4">
-            <div className="card bg-danger text-white h-100">
-              <div className="card-body text-center">
-                <i className="bi bi-cash-stack display-4"></i>
-                <h3 className="mt-2">{(data?.totalExpenses || 0).toFixed(2)}</h3>
-                <p className="mb-0">{t.total_expenses}</p>
+            <div className="card border-0 shadow-sm h-100" style={{background: 'linear-gradient(45deg, #e74a3b 0%, #be2617 100%)', color: 'white'}}>
+              <div className="card-body p-4 d-flex align-items-center justify-content-between">
+                <div>
+                   <h6 className="text-uppercase mb-2 opacity-75 fw-bold" style={{fontSize: '0.8rem'}}>{t.total_expenses}</h6>
+                   <h3 className="mb-0 fw-bold display-6">{(data?.totalExpenses || 0).toFixed(2)} <span className="fs-6 opacity-75">DZD</span></h3>
+                </div>
+                 <div className="rounded-circle bg-white bg-opacity-25 p-3 d-flex align-items-center justify-content-center" style={{width: '60px', height: '60px'}}>
+                   <i className="bi bi-cash-stack fs-2 text-white"></i>
+                </div>
               </div>
             </div>
           </div>
           <div className="col-md-4">
-            <div className={`card ${(data?.totalProfit || 0) >= 0 ? 'bg-success' : 'bg-danger'} text-white h-100`}>
-              <div className="card-body text-center">
-                <i className="bi bi-graph-up-arrow display-4"></i>
-                <h3 className="mt-2">{(data?.totalProfit || 0).toFixed(2)}</h3>
-                <p className="mb-0">{t.net_profit}</p>
+             <div className="card border-0 shadow-sm h-100" style={{
+                background: (data?.totalProfit || 0) >= 0 
+                  ? 'linear-gradient(45deg, #1cc88a 0%, #13855c 100%)' 
+                  : 'linear-gradient(45deg, #e74a3b 0%, #be2617 100%)',
+                color: 'white'
+              }}>
+              <div className="card-body p-4 d-flex align-items-center justify-content-between">
+                <div>
+                   <h6 className="text-uppercase mb-2 opacity-75 fw-bold" style={{fontSize: '0.8rem'}}>{t.net_profit}</h6>
+                   <h3 className="mb-0 fw-bold display-6">{(data?.totalProfit || 0).toFixed(2)} <span className="fs-6 opacity-75">DZD</span></h3>
+                </div>
+                 <div className="rounded-circle bg-white bg-opacity-25 p-3 d-flex align-items-center justify-content-center" style={{width: '60px', height: '60px'}}>
+                   <i className="bi bi-graph-up-arrow fs-2 text-white"></i>
+                </div>
               </div>
             </div>
           </div>
         </div>
 
-        <div className="card">
-          <div className="card-header bg-dark text-white">
-            <h5 className="mb-0"><i className="bi bi-list-ul"></i> {t.rentals}</h5>
+        {/* Detailed List */}
+        <div className="dashboard-card animate-fade-in-up delay-2" style={{overflow: 'hidden'}}>
+          <div className="card-header bg-white py-3 border-0">
+             <h5 className="mb-0 fw-bold text-dark"><i className="bi bi-list-ul me-2 text-primary"></i> {t.rentals}</h5>
           </div>
-          <div className="card-body">
+          <div className="card-body p-0">
             {data?.rentals && data.rentals.length > 0 ? (
               <div className="table-responsive">
-                <table className="table table-hover">
-                  <thead className="table-light">
+                <table className="table table-hover mb-0 align-middle">
+                  <thead className="bg-light">
                     <tr>
-                      <th>#</th>
-                      <th>{t.car_model}</th>
-                      <th>{t.full_name}</th>
-                      <th>{t.start_date}</th>
-                      <th>{t.return_date}</th>
-                      <th>{t.rental_price}</th>
-                      <th>{t.status}</th>
+                      <th className="border-0 py-3 ps-4 text-secondary text-uppercase small bg-transparent">#</th>
+                      <th className="border-0 py-3 text-secondary text-uppercase small bg-transparent">{t.car_model}</th>
+                      <th className="border-0 py-3 text-secondary text-uppercase small bg-transparent">{t.full_name}</th>
+                      <th className="border-0 py-3 text-secondary text-uppercase small bg-transparent d-none d-md-table-cell">{t.start_date}</th>
+                      <th className="border-0 py-3 text-secondary text-uppercase small bg-transparent d-none d-md-table-cell">{t.return_date}</th>
+                      <th className="border-0 py-3 text-secondary text-uppercase small bg-transparent">{t.rental_price}</th>
+                      <th className="border-0 py-3 text-secondary text-uppercase small bg-transparent text-end pe-4">{t.status}</th>
                     </tr>
                   </thead>
                   <tbody>
                     {data.rentals.map((rental, index) => (
-                      <tr key={rental._id}>
-                        <td>{index + 1}</td>
-                        <td>{rental.car_model} <small className="text-muted">({rental.plate_number})</small></td>
-                        <td>{rental.client_name}</td>
-                        <td>{rental.start_date}</td>
-                        <td>{rental.return_date}</td>
-                        <td><strong>{rental.rental_price.toFixed(2)}</strong></td>
+                      <tr key={rental._id} className="border-bottom border-light">
+                        <td className="ps-4 fw-medium text-muted">{index + 1}</td>
                         <td>
-                          {rental.status === 'reserved' && <span className="badge bg-warning text-dark">{t.reserved}</span>}
-                          {rental.status === 'rented' && <span className="badge bg-info">{t.rented}</span>}
-                          {rental.status === 'returned' && <span className="badge bg-success">{t.returned}</span>}
+                          <div className="d-flex align-items-center">
+                              <div className="rounded-circle bg-primary bg-opacity-10 text-primary p-2 me-3 d-flex align-items-center justify-content-center" style={{width: '40px', height: '40px'}}>
+                                <i className="bi bi-car-front-fill"></i>
+                              </div>
+                              <div>
+                                <div className="fw-bold text-dark">{rental.car_model}</div>
+                                <div className="small text-muted font-monospace">{rental.plate_number}</div>
+                              </div>
+                          </div>
+                        </td>
+                        <td>
+                            <div className="d-flex align-items-center">
+                                <div className="rounded-circle bg-info bg-opacity-10 text-info p-1 me-2 d-flex align-items-center justify-content-center" style={{width: '32px', height: '32px'}}>
+                                    <i className="bi bi-person-fill small"></i>
+                                </div>
+                                <div>
+                                    <div className="fw-medium text-dark">{rental.client_name}</div>
+                                    <div className="d-md-none small text-muted"> {rental.start_date} </div>
+                                </div>
+                            </div>
+                        </td>
+                        <td className="d-none d-md-table-cell text-muted">{rental.start_date}</td>
+                        <td className="d-none d-md-table-cell text-muted">{rental.return_date}</td>
+                        <td className="fw-bold text-success">
+                          +{rental.rental_price.toFixed(2)} DZD
+                        </td>
+                        <td className="text-end pe-4">
+                          {rental.status === 'reserved' && <span className="badge bg-warning bg-opacity-10 text-warning rounded-pill px-3 py-2">{t.reserved}</span>}
+                          {rental.status === 'rented' && <span className="badge bg-info bg-opacity-10 text-info rounded-pill px-3 py-2">{t.rented}</span>}
+                          {rental.status === 'returned' && <span className="badge bg-success bg-opacity-10 text-success rounded-pill px-3 py-2">{t.returned}</span>}
                         </td>
                       </tr>
                     ))}
@@ -162,7 +210,12 @@ export default function ProfitsPage() {
                 </table>
               </div>
             ) : (
-              <p className="text-muted text-center mb-0">{t.no_data}</p>
+                <div className="text-center py-5">
+                    <div className="mb-3 opacity-25">
+                      <i className="bi bi-graph-up-arrow" style={{ fontSize: '4rem' }}></i>
+                    </div>
+                    <h5 className="text-muted fw-medium">{t.no_data}</h5>
+                </div>
             )}
           </div>
         </div>

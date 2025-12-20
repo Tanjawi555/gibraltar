@@ -90,6 +90,61 @@ export const CarModel = {
     ]).toArray();
   },
 
+  async getPaginated(page: number, limit: number, search: string) {
+    const db = await getDatabase();
+    const skip = (page - 1) * limit;
+    
+    const query: any = {};
+    if (search) {
+      query.$or = [
+          { model: { $regex: search, $options: 'i' } },
+          { plate_number: { $regex: search, $options: 'i' } }
+      ];
+    }
+
+    const total = await db.collection('cars').countDocuments(query);
+
+    const cars = await db.collection('cars').aggregate([
+      { $match: query },
+      {
+        $lookup: {
+          from: 'rentals',
+          let: { carId: '$_id' },
+          pipeline: [
+            {
+              $match: {
+                $expr: {
+                  $and: [
+                    { $eq: ['$car_id', '$$carId'] },
+                    { $in: ['$status', ['reserved', 'rented']] }
+                  ]
+                }
+              }
+            },
+            { $sort: { created_at: -1 } },
+            { $limit: 1 }
+          ],
+          as: 'active_rentals'
+        }
+      },
+      {
+        $addFields: {
+          current_rental: { $arrayElemAt: ['$active_rentals', 0] }
+        }
+      },
+      {
+        $project: {
+          active_rentals: 0
+        }
+      },
+      { $sort: { created_at: -1 } },
+      { $skip: skip },
+      { $limit: limit }
+    ]).toArray();
+
+    return { cars, total, page, limit };
+  },
+
   async getById(id: string) {
     const db = await getDatabase();
     return db.collection<Car>('cars').findOne({ _id: new ObjectId(id) });
@@ -144,6 +199,30 @@ export const ClientModel = {
     return db.collection<Client>('clients').find().sort({ created_at: -1 }).toArray();
   },
 
+  async getPaginated(page: number, limit: number, search: string) {
+    const db = await getDatabase();
+    const skip = (page - 1) * limit;
+
+    const query: any = {};
+    if (search) {
+      query.$or = [
+          { full_name: { $regex: search, $options: 'i' } },
+          { passport_id: { $regex: search, $options: 'i' } },
+          { driving_license: { $regex: search, $options: 'i' } }
+      ];
+    }
+
+    const total = await db.collection('clients').countDocuments(query);
+    const clients = await db.collection<Client>('clients')
+        .find(query)
+        .sort({ created_at: -1 })
+        .skip(skip)
+        .limit(limit)
+        .toArray();
+    
+    return { clients, total, page, limit };
+  },
+
   async getById(id: string) {
     const db = await getDatabase();
     return db.collection<Client>('clients').findOne({ _id: new ObjectId(id) });
@@ -167,11 +246,26 @@ export const ClientModel = {
     });
   },
 
-  async update(id: string, full_name: string, passport_id?: string, driving_license?: string) {
+  async update(
+    id: string, 
+    full_name: string, 
+    passport_id?: string, 
+    driving_license?: string,
+    passport_image?: string | null,
+    license_image?: string | null
+  ) {
     const db = await getDatabase();
+    const updateData: any = { 
+        full_name, 
+        passport_id: passport_id || '', 
+        driving_license: driving_license || '' 
+    };
+    if (passport_image !== undefined) updateData.passport_image = passport_image;
+    if (license_image !== undefined) updateData.license_image = license_image;
+
     return db.collection<Client>('clients').updateOne(
       { _id: new ObjectId(id) },
-      { $set: { full_name, passport_id: passport_id || '', driving_license: driving_license || '' } }
+      { $set: updateData }
     );
   },
 
@@ -221,6 +315,80 @@ export const RentalModel = {
       { $sort: { created_at: -1 } },
     ]).toArray();
     return rentals;
+  },
+
+  async getPaginated(page: number, limit: number, search: string) {
+    const db = await getDatabase();
+    const skip = (page - 1) * limit;
+
+    const pipeline: any[] = [
+      {
+        $lookup: {
+          from: 'cars',
+          localField: 'car_id',
+          foreignField: '_id',
+          as: 'car',
+        },
+      },
+      {
+        $lookup: {
+          from: 'clients',
+          localField: 'client_id',
+          foreignField: '_id',
+          as: 'client',
+        },
+      },
+      { $unwind: '$car' },
+      { $unwind: '$client' },
+      {
+        $project: {
+          _id: 1,
+          car_id: 1,
+          client_id: 1,
+          start_date: 1,
+          return_date: 1,
+          rental_price: 1,
+          status: 1,
+          created_at: 1,
+          car_model: '$car.model',
+          plate_number: '$car.plate_number',
+          client_name: '$client.full_name',
+        },
+      }
+    ];
+
+    if (search) {
+      pipeline.push({
+        $match: {
+          $or: [
+            { car_model: { $regex: search, $options: 'i' } },
+            { plate_number: { $regex: search, $options: 'i' } },
+            { client_name: { $regex: search, $options: 'i' } },
+          ]
+        }
+      });
+    }
+
+    // We need two things: total count and paginated results.
+    // We can use $facet to get both in one query, improving performance.
+    const result = await db.collection('rentals').aggregate([
+      ...pipeline,
+      {
+        $facet: {
+          metadata: [{ $count: "total" }],
+          data: [
+            { $sort: { created_at: -1 } },
+            { $skip: skip },
+            { $limit: limit }
+          ]
+        }
+      }
+    ]).toArray();
+
+    const total = result[0].metadata[0]?.total || 0;
+    const rentals = result[0].data;
+
+    return { rentals, total, page, limit };
   },
 
   async create(
@@ -510,6 +678,29 @@ export const ExpenseModel = {
       description: description || null,
       created_at: new Date(),
     });
+  },
+
+  async update(
+    id: string,
+    category: string,
+    amount: number,
+    expense_date: string,
+    car_id?: string | null,
+    description?: string | null
+  ) {
+    const db = await getDatabase();
+    return db.collection('expenses').updateOne(
+      { _id: new ObjectId(id) },
+      {
+        $set: {
+          category,
+          amount,
+          expense_date,
+          car_id: car_id ? new ObjectId(car_id) : null,
+          description: description || null,
+        },
+      }
+    );
   },
 
   async delete(id: string) {

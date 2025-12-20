@@ -14,7 +14,9 @@ export interface Translations {
   rentals: string;
   expenses: string;
   profits: string;
+  total_clients: string;
   total_cars: string;
+  total_rentals: string;
   available: string;
   rented: string;
   reserved: string;
@@ -86,6 +88,7 @@ export interface Translations {
   cat_belt: string;
   cat_tires: string;
   cat_tax: string;
+  search_placeholder: string;
 }
 
 const TRANSLATIONS: Record<Language, Translations> = {
@@ -103,7 +106,9 @@ const TRANSLATIONS: Record<Language, Translations> = {
     rentals: 'الإيجارات',
     expenses: 'المصاريف',
     profits: 'الأرباح',
+    total_clients: 'إجمالي العملاء',
     total_cars: 'إجمالي السيارات',
+    total_rentals: 'إجمالي الإيجارات',
     available: 'متاحة',
     rented: 'مؤجرة',
     reserved: 'محجوزة',
@@ -175,6 +180,7 @@ const TRANSLATIONS: Record<Language, Translations> = {
     cat_belt: 'سير التايمن',
     cat_tires: 'إطارات',
     cat_tax: 'ضريبة',
+    search_placeholder: 'بحث في الإيجارات...',
   },
   en: {
     app_name: 'Car Rental System',
@@ -190,7 +196,9 @@ const TRANSLATIONS: Record<Language, Translations> = {
     rentals: 'Rentals',
     expenses: 'Expenses',
     profits: 'Profits',
+    total_clients: 'Total Clients',
     total_cars: 'Total Cars',
+    total_rentals: 'Total Rentals',
     available: 'Available',
     rented: 'Rented',
     reserved: 'Reserved',
@@ -262,6 +270,7 @@ const TRANSLATIONS: Record<Language, Translations> = {
     cat_belt: 'timing Belt',
     cat_tires: 'tires',
     cat_tax: 'Tax',
+    search_placeholder: 'Search rentals...',
   },
   fr: {
     app_name: 'Système de Location de Voitures',
@@ -277,7 +286,9 @@ const TRANSLATIONS: Record<Language, Translations> = {
     rentals: 'Locations',
     expenses: 'Dépenses',
     profits: 'Bénéfices',
+    total_clients: 'Total Clients',
     total_cars: 'Total Voitures',
+    total_rentals: 'Total Locations',
     available: 'Disponible',
     rented: 'Louée',
     reserved: 'Réservée',
@@ -349,6 +360,7 @@ const TRANSLATIONS: Record<Language, Translations> = {
     cat_belt: 'Courroie de distribution',
     cat_tires: 'Pneus',
     cat_tax: 'Taxe',
+    search_placeholder: 'Rechercher des locations...',
   },
 };
 

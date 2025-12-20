@@ -36,6 +36,27 @@ export async function POST(request: NextRequest) {
   }
 }
 
+export async function PUT(request: NextRequest) {
+  const session = await getServerSession(authOptions);
+  if (!session) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+
+  const body = await request.json();
+  const { id, category, amount, expense_date, car_id, description } = body;
+
+  if (!id || !category || !amount || !expense_date) {
+    return NextResponse.json({ error: 'Missing fields' }, { status: 400 });
+  }
+
+  try {
+    await ExpenseModel.update(id, category, parseFloat(amount), expense_date, car_id || null, description);
+    return NextResponse.json({ success: true });
+  } catch (error) {
+    return NextResponse.json({ error: 'Failed to update expense' }, { status: 500 });
+  }
+}
+
 export async function DELETE(request: NextRequest) {
   const session = await getServerSession(authOptions);
   if (!session) {

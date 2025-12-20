@@ -3,14 +3,19 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { CarModel } from '@/lib/models';
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   const session = await getServerSession(authOptions);
   if (!session) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
-  const cars = await CarModel.getAll();
-  return NextResponse.json(cars);
+  const { searchParams } = new URL(request.url);
+  const page = parseInt(searchParams.get('page') || '1');
+  const limit = parseInt(searchParams.get('limit') || '20');
+  const search = searchParams.get('search') || '';
+
+  const result = await CarModel.getPaginated(page, limit, search);
+  return NextResponse.json(result);
 }
 
 export async function POST(request: NextRequest) {

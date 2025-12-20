@@ -17,6 +17,7 @@ interface Expense {
   category: string;
   amount: number;
   expense_date: string;
+  car_id?: string;
   car_model?: string;
   plate_number?: string;
   description?: string;
@@ -38,6 +39,7 @@ export default function ExpensesPage() {
     car_id: '',
     description: '',
   });
+  const [editingExpense, setEditingExpense] = useState<Expense | null>(null);
   const [message, setMessage] = useState<{ type: string; text: string } | null>(null);
 
   useEffect(() => {
@@ -92,13 +94,22 @@ export default function ExpensesPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      await fetch('/api/expenses', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formData),
-      });
+      if (editingExpense) {
+        await fetch('/api/expenses', {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ id: editingExpense._id, ...formData }),
+        });
+      } else {
+        await fetch('/api/expenses', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(formData),
+        });
+      }
       showMessage_('success', t.success);
       setShowModal(false);
+      setEditingExpense(null);
       setFormData({
         category: 'maintenance',
         amount: '',
@@ -121,6 +132,18 @@ export default function ExpensesPage() {
     } catch (error) {
       showMessage_('danger', t.error);
     }
+  };
+
+  const handleEdit = (expense: Expense) => {
+    setEditingExpense(expense);
+    setFormData({
+      category: expense.category,
+      amount: expense.amount.toString(),
+      expense_date: expense.expense_date,
+      car_id: expense.car_id || '',
+      description: expense.description || '',
+    });
+    setShowModal(true);
   };
 
   const getCategoryLabel = (category: string) => {
@@ -178,52 +201,86 @@ export default function ExpensesPage() {
           </div>
         )}
 
-        <div className="d-flex justify-content-between align-items-center mb-4">
-          <h2><i className="bi bi-cash-stack"></i> {t.expenses}</h2>
-          <button className="btn btn-primary" onClick={() => setShowModal(true)}>
-            <i className="bi bi-plus-circle"></i> {t.add_expense}
+        {/* Header Section */}
+        <div className="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2 animate-fade-in-up">
+          <div>
+            <h2 className="fw-bold mb-1"><i className="bi bi-cash-stack text-primary me-2"></i>{t.expenses}</h2>
+            <p className="text-muted mb-0">{t.total_expenses}: {expenses.reduce((acc, curr) => acc + curr.amount, 0).toFixed(2)} DZD</p>
+          </div>
+          <button className="btn btn-primary d-flex align-items-center shadow-sm" onClick={() => {
+            setEditingExpense(null);
+            setFormData({
+              category: 'maintenance',
+              amount: '',
+              expense_date: new Date().toISOString().split('T')[0],
+              car_id: '',
+              description: '',
+            });
+            setShowModal(true);
+          }}>
+            <i className="bi bi-plus-lg me-2"></i> {t.add_expense}
           </button>
         </div>
 
-        <div className="card">
-          <div className="card-body">
+        {/* Expenses Table */}
+        <div className="dashboard-card animate-fade-in-up delay-1" style={{overflow: 'hidden'}}>
+          <div className="card-body p-0">
             {expenses.length > 0 ? (
               <div className="table-responsive">
-                <table className="table table-hover">
-                  <thead className="table-dark">
+                <table className="table table-hover mb-0 align-middle">
+                  <thead className="bg-light">
                     <tr>
-                      <th>#</th>
-                      <th>{t.category}</th>
-                      <th>{t.amount}</th>
-                      <th>{t.date}</th>
-                      <th>{t.link_car}</th>
-                      <th>{t.description}</th>
-                      <th>{t.actions}</th>
+                      <th className="border-0 py-3 ps-4 text-secondary text-uppercase small bg-transparent">#</th>
+                      <th className="border-0 py-3 text-secondary text-uppercase small bg-transparent">{t.category}</th>
+                      <th className="border-0 py-3 text-secondary text-uppercase small bg-transparent">{t.amount}</th>
+                      <th className="border-0 py-3 text-secondary text-uppercase small bg-transparent">{t.date}</th>
+                      <th className="border-0 py-3 text-secondary text-uppercase small bg-transparent">{t.link_car}</th>
+                      <th className="border-0 py-3 text-secondary text-uppercase small bg-transparent d-none d-md-table-cell">{t.description}</th>
+                      <th className="border-0 py-3 text-secondary text-uppercase small bg-transparent text-end pe-4">{t.actions}</th>
                     </tr>
                   </thead>
                   <tbody>
                     {expenses.map((expense, index) => (
-                      <tr key={expense._id}>
-                        <td>{index + 1}</td>
+                      <tr key={expense._id} className="border-bottom border-light">
+                        <td className="ps-4 fw-medium text-muted">{index + 1}</td>
                         <td>
-                          <span className={`badge ${getCategoryBadgeClass(expense.category)}`}>
+                          <span className={`badge ${getCategoryBadgeClass(expense.category)} bg-opacity-10 text-dark rounded-pill px-3 py-2 border`}>
+                            <i className="bi bi-tag-fill me-1 opacity-50"></i>
                             {getCategoryLabel(expense.category)}
                           </span>
                         </td>
-                        <td>{expense.amount.toFixed(2)}</td>
-                        <td>{expense.expense_date}</td>
+                        <td className="fw-bold text-danger">-{expense.amount.toFixed(2)}</td>
+                        <td>
+                           <div className="d-flex align-items-center text-muted">
+                                <i className="bi bi-calendar-event me-2 text-primary opacity-50"></i>
+                                {expense.expense_date}
+                             </div>
+                        </td>
                         <td>
                           {expense.car_model ? (
-                            <>{expense.car_model} <small className="text-muted">({expense.plate_number})</small></>
+                             <div className="d-flex align-items-center">
+                                <div className="rounded-circle bg-primary bg-opacity-10 text-primary p-1 me-2 d-flex align-items-center justify-content-center" style={{width: '32px', height: '32px'}}>
+                                  <i className="bi bi-car-front-fill small"></i>
+                                </div>
+                                <div>
+                                  <div className="fw-medium text-dark">{expense.car_model}</div>
+                                  <div className="small text-muted font-monospace">{expense.plate_number}</div>
+                                </div>
+                            </div>
                           ) : (
-                            <span className="text-muted">{t.no_car}</span>
+                            <span className="badge bg-light text-muted fw-normal border px-3 py-2">{t.no_car}</span>
                           )}
                         </td>
-                        <td>{expense.description || '-'}</td>
-                        <td>
-                          <button onClick={() => handleDelete(expense._id)} className="btn btn-sm btn-outline-danger">
-                            <i className="bi bi-trash"></i>
-                          </button>
+                        <td className="d-none d-md-table-cell text-muted"><small>{expense.description || '-'}</small></td>
+                        <td className="text-end pe-4">
+                          <div className="btn-group">
+                            <button onClick={() => handleEdit(expense)} className="btn btn-sm btn-light text-primary me-1" title={t.edit}>
+                              <i className="bi bi-pencil-fill fs-6"></i>
+                            </button>
+                            <button onClick={() => handleDelete(expense._id)} className="btn btn-sm btn-light text-danger" title={t.delete}>
+                              <i className="bi bi-trash-fill fs-6"></i>
+                            </button>
+                          </div>
                         </td>
                       </tr>
                     ))}
@@ -231,58 +288,71 @@ export default function ExpensesPage() {
                 </table>
               </div>
             ) : (
-              <p className="text-muted text-center mb-0">{t.no_data}</p>
+                <div className="text-center py-5">
+                    <div className="mb-3 opacity-25">
+                      <i className="bi bi-cash-stack" style={{ fontSize: '4rem' }}></i>
+                    </div>
+                    <h5 className="text-muted fw-medium">{t.no_data}</h5>
+                    <p className="text-muted small">Try adding a new expense to get started.</p>
+                </div>
             )}
           </div>
         </div>
 
         {showModal && (
           <div className="modal fade show d-block" style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}>
-            <div className="modal-dialog">
+            <div className="modal-dialog modal-lg">
               <div className="modal-content">
                 <form onSubmit={handleSubmit}>
                   <div className="modal-header">
-                    <h5 className="modal-title">{t.add_expense}</h5>
+                    <h5 className="modal-title">{editingExpense ? t.edit : t.add_expense}</h5>
                     <button type="button" className="btn-close" onClick={() => setShowModal(false)} />
                   </div>
                   <div className="modal-body">
-                    <div className="mb-3">
-                      <label className="form-label">{t.category}</label>
-                      <select className="form-select" value={formData.category} onChange={(e) => setFormData({ ...formData, category: e.target.value })} required>
-                        <option value="maintenance">{t.maintenance}</option>
-                        <option value="insurance">{t.insurance}</option>
-                        <option value="local">{t.cat_local}</option>
-                        <option value="wifi">{t.cat_wifi}</option>
-                        <option value="orange_network">{t.cat_orange}</option>
-                        <option value="oil_change">{t.cat_oil}</option>
-                        <option value="timing_belt">{t.cat_belt}</option>
-                        <option value="tires">{t.cat_tires}</option>
-                        <option value="tax">{t.cat_tax}</option>
-                        <option value="other">{t.other}</option>
-                      </select>
-                    </div>
                     <div className="row">
-                      <div className="col-md-6 mb-3">
-                        <label className="form-label">{t.amount}</label>
-                        <input type="number" step="0.01" min="0" className="form-control" value={formData.amount} onChange={(e) => setFormData({ ...formData, amount: e.target.value })} required />
-                      </div>
+                        <div className="col-md-6 mb-3">
+                           <label className="form-label">{t.category}</label>
+                           <select className="form-select" value={formData.category} onChange={(e) => setFormData({ ...formData, category: e.target.value })} required>
+                                <option value="maintenance">{t.maintenance}</option>
+                                <option value="insurance">{t.insurance}</option>
+                                <option value="local">{t.cat_local}</option>
+                                <option value="wifi">{t.cat_wifi}</option>
+                                <option value="orange_network">{t.cat_orange}</option>
+                                <option value="oil_change">{t.cat_oil}</option>
+                                <option value="timing_belt">{t.cat_belt}</option>
+                                <option value="tires">{t.cat_tires}</option>
+                                <option value="tax">{t.cat_tax}</option>
+                                <option value="other">{t.other}</option>
+                           </select>
+                        </div>
+                        <div className="col-md-6 mb-3">
+                           <label className="form-label">{t.amount}</label>
+                           <div className="input-group">
+                              <input type="number" step="0.01" min="0" className="form-control" value={formData.amount} onChange={(e) => setFormData({ ...formData, amount: e.target.value })} required />
+                              <span className="input-group-text bg-light">DZD</span>
+                           </div>
+                        </div>
+                    </div>
+
+                    <div className="row">
                       <div className="col-md-6 mb-3">
                         <label className="form-label">{t.date}</label>
                         <input type="date" className="form-control" value={formData.expense_date} onChange={(e) => setFormData({ ...formData, expense_date: e.target.value })} required />
                       </div>
+                      <div className="col-md-6 mb-3">
+                        <label className="form-label">{t.link_car}</label>
+                        <select className="form-select" value={formData.car_id} onChange={(e) => setFormData({ ...formData, car_id: e.target.value })}>
+                            <option value="">-- {t.no_car} --</option>
+                            {cars.map((car) => (
+                            <option key={car._id} value={car._id}>{car.model} ({car.plate_number})</option>
+                            ))}
+                        </select>
+                      </div>
                     </div>
-                    <div className="mb-3">
-                      <label className="form-label">{t.link_car}</label>
-                      <select className="form-select" value={formData.car_id} onChange={(e) => setFormData({ ...formData, car_id: e.target.value })}>
-                        <option value="">-- {t.no_car} --</option>
-                        {cars.map((car) => (
-                          <option key={car._id} value={car._id}>{car.model} ({car.plate_number})</option>
-                        ))}
-                      </select>
-                    </div>
+                    
                     <div className="mb-3">
                       <label className="form-label">{t.description}</label>
-                      <textarea className="form-control" rows={2} value={formData.description} onChange={(e) => setFormData({ ...formData, description: e.target.value })} />
+                      <textarea className="form-control" rows={3} value={formData.description} onChange={(e) => setFormData({ ...formData, description: e.target.value })} />
                     </div>
                   </div>
                   <div className="modal-footer">
