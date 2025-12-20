@@ -133,6 +133,8 @@ export default function DashboardPage() {
           </div>
         </div>
 
+
+
         {/* Car Stats Row */}
         <div className="row g-4 mb-4">
           <div className="col-6 col-lg-3 animate-fade-in-up delay-1">
@@ -250,72 +252,67 @@ export default function DashboardPage() {
         </div>
 
         {/* Notifications Section */}
-        <div className="row animate-fade-in-up delay-3">
+        {data?.notifications && data.notifications.length > 0 && (
+          <div className="row mb-4 animate-fade-in-up delay-1">
             <div className="col-12">
-            <div className="dashboard-card">
-              <div className="card-header bg-white border-0 py-4 px-4 d-flex justify-content-between align-items-center">
-                <div className="d-flex align-items-center">
-                    <div className="card-icon-wrapper icon-blue mb-0 me-3" style={{width: '40px', height: '40px', fontSize: '1.2rem'}}>
-                        <i className="bi bi-bell-fill"></i>
-                    </div>
-                    <h5 className="mb-0 fw-bold">{t.notifications}</h5>
-                </div>
-                
-                {data?.notifications && data.notifications.length > 0 && (
-                  <span className="badge bg-danger rounded-pill shadow-sm">
-                    {data.notifications.length} {t.notifications}
-                  </span>
-                )}
-              </div>
-              <div className="card-body p-0">
-                {data?.notifications && data.notifications.length > 0 ? (
-                  <div className="list-group list-group-flush">
-                    {data.notifications.map((notif, index) => (
-                      <div key={index} className={`list-group-item notification-item border-0 px-4 py-3 status-${notif.severity}`}>
-                        <div className="d-flex align-items-center">
-                           <div className="flex-shrink-0 me-3">
-                            {notif.type === 'start_today' && <i className="bi bi-calendar-event-fill text-warning fs-4"></i>}
-                            {notif.type === 'start_tomorrow' && <i className="bi bi-calendar-plus-fill text-info fs-4"></i>}
-                            {notif.type === 'return_today' && <i className="bi bi-calendar-check-fill text-primary fs-4"></i>}
-                            {notif.type === 'overdue' && <i className="bi bi-exclamation-triangle-fill text-danger fs-4"></i>}
-                           </div>
-                           <div className="flex-grow-1">
-                                <div className="d-flex justify-content-between align-items-center mb-1 flex-wrap">
-                                    <h6 className="mb-0 fw-bold">
-                                        {notif.type === 'start_today' && t.start_today}
-                                        {notif.type === 'start_tomorrow' && t.start_tomorrow}
-                                        {notif.type === 'return_today' && t.return_today}
-                                        {notif.type === 'overdue' && t.overdue}
-                                    </h6>
-                                    <span className="text-muted small">
-                                      <i className="bi bi-clock me-1"></i>
-                                      {notif.rental.start_date} <i className="bi bi-arrow-right mx-1"></i> {notif.rental.return_date}
-                                    </span>
-                                </div>
-                                <p className="mb-0 text-muted small">
-                                    <span className="fw-semibold text-dark">{notif.rental.model}</span> 
-                                    <span className="mx-2">•</span>
-                                    {notif.rental.plate_number}
-                                    <span className="mx-2">•</span>
-                                    <span className="text-primary">{notif.rental.full_name}</span>
-                                </p>
-                           </div>
-                        </div>
+               <div className="dashboard-card border-0 shadow-sm bg-white">
+                  <div className="card-header bg-white border-0 py-3 px-4 d-flex justify-content-between align-items-center">
+                      <div className="d-flex align-items-center">
+                          <i className="bi bi-bell-fill text-primary me-2 fs-5"></i>
+                          <h5 className="mb-0 fw-bold">{t.notifications}</h5>
                       </div>
-                    ))}
+                      <span className="badge bg-danger rounded-pill px-3 py-2">
+                          {data.notifications.length} {t.notifications}
+                      </span>
                   </div>
-                ) : (
-                  <div className="text-center py-5">
-                    <div className="mb-3 opacity-25">
-                      <i className="bi bi-bell-slash" style={{ fontSize: '3rem' }}></i>
-                    </div>
-                    <p className="text-muted mb-0 fw-medium">{t.no_notifications}</p>
+                  <div className="card-body p-0">
+                     <div className="row g-0">
+                       {data.notifications.map((notif, index) => (
+                           <div key={index} className="col-12 col-md-6 col-lg-4 border-bottom border-end">
+                                <div className={`p-4 h-100 position-relative hover-bg-light transition-all ${notif.severity === 'danger' ? 'bg-danger bg-opacity-10' : ''}`}>
+                                  <div className="d-flex align-items-start mb-3">
+                                      <div className="flex-shrink-0 me-3">
+                                          {notif.type === 'start_today' && <div className="rounded-circle bg-warning bg-opacity-25 p-3 text-warning"><i className="bi bi-calendar-event-fill fs-5"></i></div>}
+                                          {notif.type === 'start_tomorrow' && <div className="rounded-circle bg-info bg-opacity-25 p-3 text-info"><i className="bi bi-calendar-plus-fill fs-5"></i></div>}
+                                          {notif.type === 'return_today' && <div className="rounded-circle bg-primary bg-opacity-25 p-3 text-primary"><i className="bi bi-calendar-check-fill fs-5"></i></div>}
+                                          {notif.type === 'overdue' && <div className="rounded-circle bg-danger bg-opacity-25 p-3 text-danger"><i className="bi bi-exclamation-triangle-fill fs-5"></i></div>}
+                                      </div>
+                                      <div className="flex-grow-1">
+                                          <div className="d-flex justify-content-between align-items-start mb-1">
+                                              <h6 className="fw-bold mb-0 text-dark">
+                                                  {notif.type === 'start_today' && t.start_today}
+                                                  {notif.type === 'start_tomorrow' && t.start_tomorrow}
+                                                  {notif.type === 'return_today' && t.return_today}
+                                                  {notif.type === 'overdue' && t.overdue}
+                                              </h6>
+                                          </div>
+                                          <p className="small text-muted mb-2">
+                                              <i className="bi bi-clock me-1"></i>
+                                              {notif.rental.start_date} <i className="bi bi-arrow-right mx-1"></i> {notif.rental.return_date}
+                                          </p>
+                                          <div className="d-flex align-items-center mt-2">
+                                               <div className="d-flex align-items-center me-3">
+                                                   <i className="bi bi-car-front me-1 text-secondary"></i>
+                                                   <span className="small fw-medium">{notif.rental.model}</span>
+                                               </div>
+                                                <div className="d-flex align-items-center">
+                                                   <i className="bi bi-person me-1 text-secondary"></i>
+                                                   <span className="small fw-medium">{notif.rental.full_name}</span>
+                                               </div>
+                                          </div>
+                                      </div>
+                                  </div>
+                                </div>
+                           </div>
+                       ))}
+                     </div>
                   </div>
-                )}
-              </div>
+               </div>
             </div>
-            </div>
-        </div>
+          </div>
+        )}
+
+
       </div>
     </>
   );
