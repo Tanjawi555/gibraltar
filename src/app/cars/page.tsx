@@ -180,9 +180,6 @@ export default function CarsPage() {
               <h2 className="fw-bold mb-1"><i className="bi bi-car-front text-primary me-2"></i>{t.cars}</h2>
               <p className="text-muted mb-0">{t.total_cars}: {total}</p>
           </div>
-          <button className="btn btn-primary d-flex align-items-center shadow-sm" onClick={() => { setEditingCar(null); setFormData({ model: '', plate_number: '' }); setShowModal(true); }}>
-            <i className="bi bi-plus-lg me-2"></i> {t.add_car}
-          </button>
         </div>
 
         {/* Search Bar */}
@@ -358,6 +355,15 @@ export default function CarsPage() {
             </div>
           </div>
         )}
+
+        {/* Floating Action Button for Adding Car */}
+        <button 
+          className="btn btn-primary rounded-circle shadow-lg d-flex align-items-center justify-content-center position-fixed animate-fade-in-up" 
+          style={{ width: '60px', height: '60px', bottom: '90px', right: '20px', zIndex: 1050 }}
+          onClick={() => { setEditingCar(null); setFormData({ model: '', plate_number: '' }); setShowModal(true); }}
+        >
+           <i className="bi bi-plus-lg fs-2"></i>
+        </button>
       </div>
     </AppLayout>
   );

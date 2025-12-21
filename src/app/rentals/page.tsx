@@ -214,19 +214,6 @@ export default function RentalsPage() {
           <div>
               <h2 className="fw-bold mb-1"><i className="bi bi-calendar-check text-primary me-2"></i>{t.rentals}</h2>
           </div>
-          <button className="btn btn-primary d-flex align-items-center shadow-sm" onClick={() => {
-            setEditingRental(null);
-            setFormData({
-              car_id: '',
-              client_id: '',
-              start_date: new Date().toISOString().split('T')[0],
-              return_date: new Date().toISOString().split('T')[0],
-              rental_price: '',
-            });
-            setShowModal(true);
-          }}>
-            <i className="bi bi-plus-lg me-2"></i> {t.add_rental}
-          </button>
         </div>
 
          {/* Search Bar */}
@@ -438,6 +425,25 @@ export default function RentalsPage() {
             </div>
           </div>
         )}
+
+        {/* Floating Action Button for Adding Rental */}
+        <button 
+          className="btn btn-primary rounded-circle shadow-lg d-flex align-items-center justify-content-center position-fixed animate-fade-in-up" 
+          style={{ width: '60px', height: '60px', bottom: '90px', right: '20px', zIndex: 1050 }}
+          onClick={() => {
+            setEditingRental(null);
+            setFormData({
+              car_id: '',
+              client_id: '',
+              start_date: new Date().toISOString().split('T')[0],
+              return_date: new Date().toISOString().split('T')[0],
+              rental_price: '',
+            });
+            setShowModal(true);
+          }}
+        >
+           <i className="bi bi-plus-lg fs-2"></i>
+        </button>
       </div>
     </AppLayout>
   );

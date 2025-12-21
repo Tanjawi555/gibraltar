@@ -61,7 +61,7 @@ export async function PUT(request: NextRequest) {
              const { v2: cloudinary } = await import('cloudinary');
              if (process.env.CLOUDINARY_API_KEY && process.env.CLOUDINARY_API_SECRET) {
                 cloudinary.config({
-                    cloud_name: 'dzrpuv8ea',
+                    cloud_name: 'da0h6izcq',
                     api_key: process.env.CLOUDINARY_API_KEY,
                     api_secret: process.env.CLOUDINARY_API_SECRET
                 });
@@ -145,7 +145,7 @@ export async function DELETE(request: NextRequest) {
         // Configure only if env vars are present (to avoid crashing if not set)
         if (process.env.CLOUDINARY_API_KEY && process.env.CLOUDINARY_API_SECRET) {
             cloudinary.config({
-                cloud_name: 'dzrpuv8ea',
+                cloud_name: 'da0h6izcq',
                 api_key: process.env.CLOUDINARY_API_KEY,
                 api_secret: process.env.CLOUDINARY_API_SECRET
             });

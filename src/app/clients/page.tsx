@@ -90,10 +90,10 @@ export default function ClientsPage() {
   };
 
   const uploadToCloudinary = async (file: File): Promise<string | null> => {
-    const url = `https://api.cloudinary.com/v1_1/dzrpuv8ea/image/upload`;
+    const url = `https://api.cloudinary.com/v1_1/da0h6izcq/image/upload`;
     const formData = new FormData();
     formData.append('file', file);
-    formData.append('upload_preset', 'narennos');
+    formData.append('upload_preset', 'narenos');
 
     try {
       const res = await fetch(url, {
@@ -218,9 +218,6 @@ export default function ClientsPage() {
               <h2 className="fw-bold mb-1"><i className="bi bi-people text-primary me-2"></i>{t.clients}</h2>
               <p className="text-muted mb-0">{t.total_clients || 'Total Clients'}: {total}</p>
           </div>
-          <button className="btn btn-primary d-flex align-items-center shadow-sm" onClick={() => { setEditingClient(null); setFormData({ full_name: '' }); setShowModal(true); }}>
-            <i className="bi bi-plus-lg me-2"></i> {t.add_client}
-          </button>
         </div>
 
          {/* Search Bar */}
@@ -407,6 +404,15 @@ export default function ClientsPage() {
             </div>
           </div>
         )}
+
+        {/* Floating Action Button for Adding Client */}
+        <button 
+          className="btn btn-primary rounded-circle shadow-lg d-flex align-items-center justify-content-center position-fixed animate-fade-in-up" 
+          style={{ width: '60px', height: '60px', bottom: '90px', right: '20px', zIndex: 1050 }}
+          onClick={() => { setEditingClient(null); setFormData({ full_name: '' }); setShowModal(true); }}
+        >
+           <i className="bi bi-plus-lg fs-2"></i>
+        </button>
       </div>
     </AppLayout>
   );
