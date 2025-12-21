@@ -89,6 +89,7 @@ export interface Translations {
   cat_tires: string;
   cat_tax: string;
   search_placeholder: string;
+  more: string;
 }
 
 const TRANSLATIONS: Record<Language, Translations> = {
@@ -181,6 +182,7 @@ const TRANSLATIONS: Record<Language, Translations> = {
     cat_tires: 'إطارات',
     cat_tax: 'ضريبة',
     search_placeholder: 'بحث في الإيجارات...',
+    more: 'المزيد',
   },
   en: {
     app_name: 'Car Rental System',
@@ -271,6 +273,7 @@ const TRANSLATIONS: Record<Language, Translations> = {
     cat_tires: 'tires',
     cat_tax: 'Tax',
     search_placeholder: 'Search rentals...',
+    more: 'Menu',
   },
   fr: {
     app_name: 'Système de Location de Voitures',
@@ -361,6 +364,7 @@ const TRANSLATIONS: Record<Language, Translations> = {
     cat_tires: 'Pneus',
     cat_tax: 'Taxe',
     search_placeholder: 'Rechercher des locations...',
+    more: 'Menu',
   },
 };
 

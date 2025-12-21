@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
-import Navbar from '@/components/Navbar';
+import AppLayout from '@/components/AppLayout';
 import { getTranslations, isRTL, Language, Translations } from '@/lib/translations';
 
 interface Rental {
@@ -88,8 +88,13 @@ export default function ProfitsPage() {
   if (!session) return null;
 
   return (
-    <>
-      <Navbar t={t} currentLang={lang} isRtl={isRTL(lang)} onLanguageChange={handleLanguageChange} />
+    <AppLayout 
+      t={t} 
+      currentLang={lang} 
+      isRtl={isRTL(lang)} 
+      onLanguageChange={handleLanguageChange}
+      username={session.user?.name || undefined}
+    >
       <div className="container-fluid py-4">
         
         {/* Header Section */}
@@ -220,6 +225,6 @@ export default function ProfitsPage() {
           </div>
         </div>
       </div>
-    </>
+    </AppLayout>
   );
 }

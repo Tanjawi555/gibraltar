@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
-import Navbar from '@/components/Navbar';
+import AppLayout from '@/components/AppLayout';
 import { getTranslations, isRTL, Language, Translations } from '@/lib/translations';
 
 interface Notification {
@@ -107,8 +107,13 @@ export default function DashboardPage() {
   }
 
   return (
-    <>
-      <Navbar t={t} currentLang={lang} isRtl={isRTL(lang)} onLanguageChange={handleLanguageChange} />
+    <AppLayout 
+      t={t} 
+      currentLang={lang} 
+      isRtl={isRTL(lang)} 
+      onLanguageChange={handleLanguageChange}
+      username={data?.username || session.user?.name || undefined}
+    >
       <div className="container-fluid py-4">
         {/* Welcome Section */}
         <div className="d-flex justify-content-between align-items-center mb-5 animate-fade-in-up">
@@ -252,68 +257,80 @@ export default function DashboardPage() {
         </div>
 
         {/* Notifications Section */}
+        {/* Smart Alerts Section */}
         {data?.notifications && data.notifications.length > 0 && (
-          <div className="row mb-4 animate-fade-in-up delay-1">
-            <div className="col-12">
-               <div className="dashboard-card border-0 shadow-sm bg-white">
-                  <div className="card-header bg-white border-0 py-3 px-4 d-flex justify-content-between align-items-center">
-                      <div className="d-flex align-items-center">
-                          <i className="bi bi-bell-fill text-primary me-2 fs-5"></i>
-                          <h5 className="mb-0 fw-bold">{t.notifications}</h5>
+          <div className="mb-4 animate-fade-in-up delay-1">
+            <h5 className="fw-bold mb-3">Smart Alerts</h5>
+            <div className="d-flex flex-column gap-3">
+              {data.notifications.map((notif, index) => {
+                let bgColor = 'bg-primary';
+                let icon = 'bi-info-circle';
+                let title = '';
+
+                let dateLabel = '';
+                let dateValue = '';
+
+                switch (notif.type) {
+                  case 'overdue':
+                    bgColor = 'bg-danger';
+                    icon = 'bi-exclamation-triangle';
+                    title = `${t.overdue}: ${notif.rental.model}`;
+                    dateLabel = t.return_date || 'Return';
+                    dateValue = notif.rental.return_date;
+                    break;
+                  case 'start_today':
+                    bgColor = 'bg-success';
+                    icon = 'bi-clock';
+                    title = `${t.start_today}: ${notif.rental.model}`;
+                    dateLabel = t.start_date || 'Start';
+                    dateValue = notif.rental.start_date;
+                    break;
+                   case 'start_tomorrow':
+                    bgColor = 'bg-info'; 
+                    icon = 'bi-calendar-plus';
+                    title = `${t.start_tomorrow}: ${notif.rental.model}`;
+                    dateLabel = t.start_date || 'Start';
+                    dateValue = notif.rental.start_date;
+                    break;
+                  case 'return_today':
+                    bgColor = 'bg-warning';
+                    icon = 'bi-arrow-return-left';
+                    title = `${t.return_today}: ${notif.rental.model}`;
+                    dateLabel = t.return_date || 'Return';
+                    dateValue = notif.rental.return_date;
+                    break;
+                  default:
+                    bgColor = 'bg-secondary';
+                    title = 'Notification';
+                }
+
+                return (
+                  <div key={index} className={`d-flex align-items-center p-3 rounded-3 text-white shadow-sm ${bgColor}`} style={{ minHeight: '80px' }}>
+                    <div className="rounded-circle bg-white bg-opacity-25 d-flex align-items-center justify-content-center me-3" style={{ width: '48px', height: '48px', minWidth: '48px' }}>
+                      <i className={`bi ${icon} fs-4`}></i>
+                    </div>
+                    <div className="flex-grow-1">
+                      <h6 className="mb-1 fw-bold" style={{ fontSize: '1rem' }}>{title}</h6>
+                      <div className="d-flex align-items-center opacity-75 small">
+                         <div className="d-flex align-items-center me-3">
+                            <i className="bi bi-person-fill me-1"></i>
+                            <span>{notif.rental.full_name}</span>
+                         </div>
+                         <div className="d-flex align-items-center">
+                            <i className="bi bi-calendar-event-fill me-1"></i>
+                            <span>{dateValue}</span>
+                         </div>
                       </div>
-                      <span className="badge bg-danger rounded-pill px-3 py-2">
-                          {data.notifications.length} {t.notifications}
-                      </span>
+                    </div>
                   </div>
-                  <div className="card-body p-0">
-                     <div className="row g-0">
-                       {data.notifications.map((notif, index) => (
-                           <div key={index} className="col-12 col-md-6 col-lg-4 border-bottom border-end">
-                                <div className={`p-4 h-100 position-relative hover-bg-light transition-all ${notif.severity === 'danger' ? 'bg-danger bg-opacity-10' : ''}`}>
-                                  <div className="d-flex align-items-start mb-3">
-                                      <div className="flex-shrink-0 me-3">
-                                          {notif.type === 'start_today' && <div className="rounded-circle bg-warning bg-opacity-25 p-3 text-warning"><i className="bi bi-calendar-event-fill fs-5"></i></div>}
-                                          {notif.type === 'start_tomorrow' && <div className="rounded-circle bg-info bg-opacity-25 p-3 text-info"><i className="bi bi-calendar-plus-fill fs-5"></i></div>}
-                                          {notif.type === 'return_today' && <div className="rounded-circle bg-primary bg-opacity-25 p-3 text-primary"><i className="bi bi-calendar-check-fill fs-5"></i></div>}
-                                          {notif.type === 'overdue' && <div className="rounded-circle bg-danger bg-opacity-25 p-3 text-danger"><i className="bi bi-exclamation-triangle-fill fs-5"></i></div>}
-                                      </div>
-                                      <div className="flex-grow-1">
-                                          <div className="d-flex justify-content-between align-items-start mb-1">
-                                              <h6 className="fw-bold mb-0 text-dark">
-                                                  {notif.type === 'start_today' && t.start_today}
-                                                  {notif.type === 'start_tomorrow' && t.start_tomorrow}
-                                                  {notif.type === 'return_today' && t.return_today}
-                                                  {notif.type === 'overdue' && t.overdue}
-                                              </h6>
-                                          </div>
-                                          <p className="small text-muted mb-2">
-                                              <i className="bi bi-clock me-1"></i>
-                                              {notif.rental.start_date} <i className="bi bi-arrow-right mx-1"></i> {notif.rental.return_date}
-                                          </p>
-                                          <div className="d-flex align-items-center mt-2">
-                                               <div className="d-flex align-items-center me-3">
-                                                   <i className="bi bi-car-front me-1 text-secondary"></i>
-                                                   <span className="small fw-medium">{notif.rental.model}</span>
-                                               </div>
-                                                <div className="d-flex align-items-center">
-                                                   <i className="bi bi-person me-1 text-secondary"></i>
-                                                   <span className="small fw-medium">{notif.rental.full_name}</span>
-                                               </div>
-                                          </div>
-                                      </div>
-                                  </div>
-                                </div>
-                           </div>
-                       ))}
-                     </div>
-                  </div>
-               </div>
+                );
+              })}
             </div>
           </div>
         )}
 
 
       </div>
-    </>
+    </AppLayout>
   );
 }

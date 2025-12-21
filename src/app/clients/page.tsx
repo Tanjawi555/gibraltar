@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
-import Navbar from '@/components/Navbar';
+import AppLayout from '@/components/AppLayout';
 import { getTranslations, isRTL, Language, Translations } from '@/lib/translations';
 
 interface Client {
@@ -197,8 +197,13 @@ export default function ClientsPage() {
   if (!session) return null;
 
   return (
-    <>
-      <Navbar t={t} currentLang={lang} isRtl={isRTL(lang)} onLanguageChange={handleLanguageChange} />
+    <AppLayout 
+      t={t} 
+      currentLang={lang} 
+      isRtl={isRTL(lang)} 
+      onLanguageChange={handleLanguageChange}
+      username={session.user?.name || undefined}
+    >
       <div className="container-fluid py-4">
         {message && (
           <div className={`alert alert-${message.type} alert-dismissible fade show`}>
@@ -403,6 +408,6 @@ export default function ClientsPage() {
           </div>
         )}
       </div>
-    </>
+    </AppLayout>
   );
 }
