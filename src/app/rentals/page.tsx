@@ -43,8 +43,8 @@ export default function RentalsPage() {
   const [formData, setFormData] = useState({
     car_id: '',
     client_id: '',
-    start_date: new Date().toISOString().split('T')[0],
-    return_date: new Date().toISOString().split('T')[0],
+    start_date: new Date().toISOString().slice(0, 16), // YYYY-MM-DDTHH:mm
+    return_date: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString().slice(0, 16),
     rental_price: '',
   });
   const [editingRental, setEditingRental] = useState<Rental | null>(null);
@@ -111,6 +111,14 @@ export default function RentalsPage() {
     setMessage({ type, text });
     setTimeout(() => setMessage(null), 3000);
   };
+  
+  const calculateDuration = (start: string, end: string) => {
+    const startDate = new Date(start);
+    const endDate = new Date(end);
+    const diffTime = Math.abs(endDate.getTime() - startDate.getTime());
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)); 
+    return diffDays || 1; // Minimum 1 day
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -135,8 +143,8 @@ export default function RentalsPage() {
       setFormData({
         car_id: '',
         client_id: '',
-        start_date: new Date().toISOString().split('T')[0],
-        return_date: new Date().toISOString().split('T')[0],
+        start_date: new Date().toISOString().slice(0, 16),
+        return_date: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString().slice(0, 16),
         rental_price: '',
       });
       fetchData();
@@ -181,6 +189,19 @@ export default function RentalsPage() {
     setShowModal(true);
   };
 
+  const formatDate = (dateString?: string) => {
+    if (!dateString) return '';
+    const date = new Date(dateString);
+    if (isNaN(date.getTime())) return dateString;
+    return new Intl.DateTimeFormat('en-GB', {
+      day: 'numeric',
+      month: 'short',
+      hour: 'numeric',
+      minute: 'numeric',
+      hour12: true
+    }).format(date);
+  };
+
   if (status === 'loading') {
     return (
       <div className="d-flex justify-content-center align-items-center" style={{ minHeight: '100vh' }}>
@@ -213,6 +234,7 @@ export default function RentalsPage() {
         <div className="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2 animate-fade-in-up">
           <div>
               <h2 className="fw-bold mb-1"><i className="bi bi-calendar-check text-primary me-2"></i>{t.rentals}</h2>
+              <p className="text-muted mb-0">{t.total_rentals}: {total}</p>
           </div>
         </div>
 
@@ -232,18 +254,88 @@ export default function RentalsPage() {
           </div>
         </div>
 
-        {/* Rentals Table */}
-        <div className="dashboard-card animate-fade-in-up delay-2" style={{overflow: 'hidden'}}>
-          <div className="card-body p-0">
+        {/* Rentals List (Mobile Cards & Desktop Table) */}
+        <div className="animate-fade-in-up delay-2">
             {loading && rentals.length === 0 ? (
-               <div className="p-5 text-center">
+               <div className="p-5 text-center dashboard-card">
                  <div className="spinner-border text-primary" role="status">
                    <span className="visually-hidden">Loading...</span>
                  </div>
                </div>
             ) : rentals.length > 0 ? (
               <>
-              <div className="table-responsive">
+              {/* Mobile Card View */}
+              <div className="d-md-none d-flex flex-column gap-3">
+                {rentals.map((rental, index) => (
+                  <div key={rental._id} className="dashboard-card p-3">
+                    <div className="d-flex justify-content-between align-items-start mb-2">
+                       <div className="d-flex align-items-center">
+                          <div className="rounded-circle bg-primary bg-opacity-10 text-primary p-2 me-2 d-flex align-items-center justify-content-center" style={{width: '40px', height: '40px'}}>
+                             <i className="bi bi-car-front-fill"></i>
+                          </div>
+                          <div>
+                            <div className="fw-bold text-dark">{rental.car_model}</div>
+                            <small className="text-muted font-monospace bg-light border px-1 rounded">{rental.plate_number}</small>
+                          </div>
+                       </div>
+                       {rental.status === 'reserved' && <span className="badge bg-warning bg-opacity-10 text-warning rounded-pill px-2 py-1 small">{t.reserved}</span>}
+                       {rental.status === 'rented' && <span className="badge bg-info bg-opacity-10 text-info rounded-pill px-2 py-1 small">{t.rented}</span>}
+                       {rental.status === 'returned' && <span className="badge bg-success bg-opacity-10 text-success rounded-pill px-2 py-1 small">{t.returned}</span>}
+                    </div>
+
+                    <div className="mb-2 pb-2 border-bottom border-light">
+                      <div className="d-flex align-items-center mb-1">
+                         <i className="bi bi-person text-secondary me-2"></i>
+                         <span className="fw-medium text-dark">{rental.client_name}</span>
+                      </div>
+                    </div>
+
+                    <div className="d-flex justify-content-between mb-3 small text-muted">
+                        <div>
+                           <div className="d-flex align-items-center mb-1">
+                              <i className="bi bi-calendar-check me-2 text-primary opacity-50"></i>
+                              {formatDate(rental.start_date)}
+                           </div>
+                           <div className="d-flex align-items-center">
+                              <i className="bi bi-calendar-x me-2 text-primary opacity-50"></i>
+                              {formatDate(rental.return_date)}
+                           </div>
+                        </div>
+                        <div className="text-end">
+                           <div className="fw-bold text-dark mb-1">{rental.rental_price.toFixed(2)} DZD</div>
+                           <span className="badge bg-light text-secondary border fw-normal">{calculateDuration(rental.start_date, rental.return_date)} Days</span>
+                        </div>
+                    </div>
+
+                    <div className="d-flex justify-content-end gap-2">
+                       {rental.status === 'reserved' && (
+                          <button onClick={() => handleStatusChange(rental._id, 'rented')} className="btn btn-sm btn-light text-info flex-grow-1" title={t.mark_rented}>
+                            <i className="bi bi-key-fill me-1"></i> {t.mark_rented}
+                          </button>
+                        )}
+                        {rental.status === 'rented' && (
+                          <button onClick={() => handleStatusChange(rental._id, 'returned')} className="btn btn-sm btn-light text-success flex-grow-1" title={t.mark_returned}>
+                            <i className="bi bi-check-circle-fill me-1"></i> {t.mark_returned}
+                          </button>
+                        )}
+                        <button onClick={() => handleEdit(rental)} className="btn btn-sm btn-light text-primary" title={t.edit}>
+                          <i className="bi bi-pencil-fill"></i>
+                        </button>
+                        <button onClick={() => router.push(`/rentals/${rental._id}/contract`)} className="btn btn-sm btn-light text-dark" title={t.contract}>
+                          <i className="bi bi-file-text-fill"></i>
+                        </button>
+                        <button onClick={() => handleDelete(rental._id)} className="btn btn-sm btn-light text-danger" title={t.delete}>
+                          <i className="bi bi-trash-fill"></i>
+                        </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {/* Desktop Table View */}
+              <div className="d-none d-md-block dashboard-card" style={{overflow: 'hidden'}}>
+               <div className="card-body p-0">
+               <div className="table-responsive">
                 <table className="table table-hover mb-0 align-middle">
                   <thead className="bg-light">
                     <tr>
@@ -253,6 +345,7 @@ export default function RentalsPage() {
                       <th className="border-0 py-3 text-secondary text-uppercase small bg-transparent d-none d-md-table-cell">{t.start_date}</th>
                       <th className="border-0 py-3 text-secondary text-uppercase small bg-transparent d-none d-md-table-cell">{t.return_date}</th>
                       <th className="border-0 py-3 text-secondary text-uppercase small bg-transparent d-none d-lg-table-cell">{t.rental_price}</th>
+                      <th className="border-0 py-3 text-secondary text-uppercase small bg-transparent">{t.rental_duration}</th>
                       <th className="border-0 py-3 text-secondary text-uppercase small bg-transparent">{t.status}</th>
                       <th className="border-0 py-3 text-secondary text-uppercase small bg-transparent text-end pe-4">{t.actions}</th>
                     </tr>
@@ -277,34 +370,31 @@ export default function RentalsPage() {
                              <div className="rounded-circle bg-info bg-opacity-10 text-info p-1 me-2 d-flex align-items-center justify-content-center" style={{width: '32px', height: '32px'}}>
                                 <i className="bi bi-person-fill small"></i>
                              </div>
-                             <div>
-                                <div className="fw-medium text-dark">{rental.client_name}</div>
-                                <div className="d-md-none small text-muted">
-                                  {rental.start_date} - {rental.return_date}
-                                </div>
-                             </div>
+                             <div className="fw-medium text-dark">{rental.client_name}</div>
                           </div>
                         </td>
                         <td className="d-none d-md-table-cell">
                              <div className="d-flex align-items-center text-muted">
                                 <i className="bi bi-calendar-check me-2 text-primary opacity-50"></i>
-                                {rental.start_date}
+                                {formatDate(rental.start_date)}
                              </div>
                         </td>
                         <td className="d-none d-md-table-cell">
                              <div className="d-flex align-items-center text-muted">
                                 <i className="bi bi-calendar-x me-2 text-primary opacity-50"></i>
-                                {rental.return_date}
+                                {formatDate(rental.return_date)}
                              </div>
                         </td>
                         <td className="d-none d-lg-table-cell fw-medium text-dark">
                           {rental.rental_price.toFixed(2)}
                         </td>
+                        <td className="fw-bold text-center text-primary" style={{ fontSize: '1.2rem' }}>
+                          {calculateDuration(rental.start_date, rental.return_date)}
+                        </td>
                         <td>
                           {rental.status === 'reserved' && <span className="badge bg-warning bg-opacity-10 text-warning rounded-pill px-3 py-2">{t.reserved}</span>}
                           {rental.status === 'rented' && <span className="badge bg-info bg-opacity-10 text-info rounded-pill px-3 py-2">{t.rented}</span>}
                           {rental.status === 'returned' && <span className="badge bg-success bg-opacity-10 text-success rounded-pill px-3 py-2">{t.returned}</span>}
-                          <div className="d-lg-none fw-bold mt-1 text-primary">{rental.rental_price.toFixed(2)}</div>
                         </td>
                         <td className="text-end pe-4">
                           <div className="btn-group">
@@ -321,6 +411,9 @@ export default function RentalsPage() {
                             <button onClick={() => handleEdit(rental)} className="btn btn-sm btn-light text-primary me-1" title={t.edit}>
                               <i className="bi bi-pencil-fill fs-6"></i>
                             </button>
+                            <button onClick={() => router.push(`/rentals/${rental._id}/contract`)} className="btn btn-sm btn-light text-dark me-1" title={t.contract}>
+                              <i className="bi bi-file-text-fill fs-6"></i>
+                            </button>
                             <button onClick={() => handleDelete(rental._id)} className="btn btn-sm btn-light text-danger" title={t.delete}>
                               <i className="bi bi-trash-fill fs-6"></i>
                             </button>
@@ -331,6 +424,9 @@ export default function RentalsPage() {
                   </tbody>
                 </table>
               </div>
+              </div>
+              </div>
+
               
               {/* Pagination */}
               {total > limit && (
@@ -361,7 +457,7 @@ export default function RentalsPage() {
                 </div>
             )}
           </div>
-        </div>
+
 
         {showModal && (
           <div className="modal fade show d-block" style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}>
@@ -401,11 +497,11 @@ export default function RentalsPage() {
                     <div className="row">
                       <div className="col-md-6 mb-3">
                         <label className="form-label">{t.start_date}</label>
-                        <input type="date" className="form-control" value={formData.start_date} onChange={(e) => setFormData({ ...formData, start_date: e.target.value })} required />
+                        <input type="datetime-local" className="form-control" value={formData.start_date} onChange={(e) => setFormData({ ...formData, start_date: e.target.value })} required />
                       </div>
                       <div className="col-md-6 mb-3">
                         <label className="form-label">{t.return_date}</label>
-                        <input type="date" className="form-control" value={formData.return_date} onChange={(e) => setFormData({ ...formData, return_date: e.target.value })} required />
+                        <input type="datetime-local" className="form-control" value={formData.return_date} onChange={(e) => setFormData({ ...formData, return_date: e.target.value })} required />
                       </div>
                     </div>
                     <div className="mb-3">
@@ -435,8 +531,8 @@ export default function RentalsPage() {
             setFormData({
               car_id: '',
               client_id: '',
-              start_date: new Date().toISOString().split('T')[0],
-              return_date: new Date().toISOString().split('T')[0],
+              start_date: new Date().toISOString().slice(0, 16),
+              return_date: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString().slice(0, 16),
               rental_price: '',
             });
             setShowModal(true);

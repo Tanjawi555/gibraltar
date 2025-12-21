@@ -116,6 +116,53 @@ export const CarModel = {
                 $expr: {
                   $and: [
                     { $eq: ['$car_id', '$$carId'] },
+                    { $in: ['$status', ['reserved', 'rented', 'returned']] }
+                  ]
+                }
+              }
+            },
+            {
+               $addFields: {
+                   // Calculate duration in milliseconds, convert to days.
+                   // Ensure dates are parsed as dates. If stored as strings, we need to convert.
+                   // Assuming ISO strings YYYY-MM-DDTHH:mm...
+                   // Use $toDate to convert string dates to Date objects
+                    cols_start: { $toDate: "$start_date"},
+                    cols_end: { $toDate: "$return_date"}
+               }
+            },
+            {
+                $project: {
+                    duration_days: {
+                        $ceil: {
+                            $divide: [
+                                { $subtract: ["$cols_end", "$cols_start"] },
+                                1000 * 60 * 60 * 24
+                            ]
+                        }
+                    },
+                    status: 1
+                }
+            }
+          ],
+          as: 'rental_history'
+        }
+      },
+      {
+        $addFields: {
+          total_days_rented: { $sum: "$rental_history.duration_days" }
+        }
+      },
+      {
+        $lookup: {
+          from: 'rentals',
+          let: { carId: '$_id' },
+          pipeline: [
+            {
+              $match: {
+                $expr: {
+                  $and: [
+                    { $eq: ['$car_id', '$$carId'] },
                     { $in: ['$status', ['reserved', 'rented']] }
                   ]
                 }
@@ -134,7 +181,8 @@ export const CarModel = {
       },
       {
         $project: {
-          active_rentals: 0
+          active_rentals: 0,
+          rental_history: 0 
         }
       },
       { $sort: { created_at: -1 } },
@@ -317,6 +365,53 @@ export const RentalModel = {
     return rentals;
   },
 
+  async getById(id: string) {
+    const db = await getDatabase();
+    const rentals = await db.collection('rentals').aggregate([
+      {
+        $match: { _id: new ObjectId(id) }
+      },
+      {
+        $lookup: {
+          from: 'cars',
+          localField: 'car_id',
+          foreignField: '_id',
+          as: 'car',
+        },
+      },
+      {
+        $lookup: {
+          from: 'clients',
+          localField: 'client_id',
+          foreignField: '_id',
+          as: 'client',
+        },
+      },
+      { $unwind: '$car' },
+      { $unwind: '$client' },
+      {
+        $project: {
+          _id: 1,
+          car_id: 1,
+          client_id: 1,
+          start_date: 1,
+          return_date: 1,
+          rental_price: 1,
+          status: 1,
+          created_at: 1,
+          car_model: '$car.model',
+          plate_number: '$car.plate_number',
+          client_name: '$client.full_name',
+          passport_id: '$client.passport_id',
+          driving_license: '$client.driving_license',
+          client_address: '$client.address', // Assuming address exists or optional
+          client_phone: '$client.phone', // Assuming phone exists or optional
+        },
+      },
+    ]).toArray();
+    return rentals[0] || null;
+  },
+
   async getPaginated(page: number, limit: number, search: string) {
     const db = await getDatabase();
     const skip = (page - 1) * limit;
@@ -391,6 +486,42 @@ export const RentalModel = {
     return { rentals, total, page, limit };
   },
 
+  async delete(id: string) {
+    const db = await getDatabase();
+    const rental = await db.collection('rentals').findOne({ _id: new ObjectId(id) });
+    if (rental && rental.status !== 'returned') {
+      // If we are deleting an active/reserved rental, free up the car
+      await db.collection('cars').updateOne(
+        { _id: rental.car_id },
+        { $set: { status: 'available' } }
+      );
+    }
+    return db.collection('rentals').deleteOne({ _id: new ObjectId(id) });
+  },
+
+  async checkOverlap(car_id: string, start_date: string, return_date: string, exclude_rental_id?: string) {
+    const db = await getDatabase();
+    const query: any = {
+      car_id: new ObjectId(car_id),
+      status: { $in: ['reserved', 'rented'] },
+      $or: [
+        {
+          $and: [
+            { start_date: { $lt: return_date } },
+            { return_date: { $gt: start_date } }
+          ]
+        }
+      ]
+    };
+
+    if (exclude_rental_id) {
+      query._id = { $ne: new ObjectId(exclude_rental_id) };
+    }
+
+    const count = await db.collection('rentals').countDocuments(query);
+    return count > 0;
+  },
+
   async create(
     car_id: string,
     client_id: string,
@@ -454,18 +585,7 @@ export const RentalModel = {
     );
   },
 
-  async delete(id: string) {
-    const db = await getDatabase();
-    const rental = await db.collection('rentals').findOne({ _id: new ObjectId(id) });
-    if (rental && rental.status !== 'returned') {
-      // If we are deleting an active/reserved rental, free up the car
-      await db.collection('cars').updateOne(
-        { _id: rental.car_id },
-        { $set: { status: 'available' } }
-      );
-    }
-    return db.collection('rentals').deleteOne({ _id: new ObjectId(id) });
-  },
+
 
   async getNotifications() {
     const db = await getDatabase();
@@ -474,8 +594,9 @@ export const RentalModel = {
 
     const notifications: any[] = [];
 
+    // Use $regex to match dates that start with the string (handles both "YYYY-MM-DD" and "YYYY-MM-DDTHH:mm")
     const startingToday = await db.collection('rentals').aggregate([
-      { $match: { start_date: today, status: 'reserved' } },
+      { $match: { start_date: { $regex: `^${today}` }, status: 'reserved' } },
       {
         $lookup: {
           from: 'cars',
@@ -510,7 +631,7 @@ export const RentalModel = {
     }
 
     const startingTomorrow = await db.collection('rentals').aggregate([
-      { $match: { start_date: tomorrow, status: 'reserved' } },
+      { $match: { start_date: { $regex: `^${tomorrow}` }, status: 'reserved' } },
       {
         $lookup: {
           from: 'cars',
@@ -545,7 +666,7 @@ export const RentalModel = {
     }
 
     const returnToday = await db.collection('rentals').aggregate([
-      { $match: { return_date: today, status: 'rented' } },
+      { $match: { return_date: { $regex: `^${today}` }, status: 'rented' } },
       {
         $lookup: {
           from: 'cars',
@@ -579,6 +700,14 @@ export const RentalModel = {
       });
     }
 
+    // specific strict comparison for overdue might still work if we assume ISO string sort order
+    // But to be safe with time: return_date < today (string comparison works for ISO dates, "2024-05-20T..." > "2024-05-19")
+    // "2024-05-20T09:00" is effectively "greater" than "2024-05-20" if we compare strings directly?
+    // Wait, "2024-05-20" is shorter. "2024-05-20T..." > "2024-05-20" is true.
+    // So if return date is TODAY (with time), it is NOT less than TODAY (without time).
+    // If return date is YESTERDAY, it is less.
+    // So simple string comparison works fine for "overdue" as strictly < today.
+    // e.g. "2024-05-19T23:59" < "2024-05-20". Correct.
     const overdue = await db.collection('rentals').aggregate([
       { $match: { return_date: { $lt: today }, status: 'rented' } },
       {

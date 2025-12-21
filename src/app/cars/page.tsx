@@ -146,6 +146,19 @@ export default function CarsPage() {
     setShowModal(true);
   };
 
+  const formatDate = (dateString?: string) => {
+    if (!dateString) return '';
+    const date = new Date(dateString);
+    if (isNaN(date.getTime())) return dateString;
+    return new Intl.DateTimeFormat('en-GB', {
+      day: 'numeric',
+      month: 'short',
+      hour: 'numeric',
+      minute: 'numeric',
+      hour12: true
+    }).format(date);
+  };
+
   if (status === 'loading') {
     return (
       <div className="d-flex justify-content-center align-items-center" style={{ minHeight: '100vh' }}>
@@ -229,16 +242,24 @@ export default function CarsPage() {
                               <div className="rounded-circle bg-primary bg-opacity-10 text-primary p-2 me-3 d-flex align-items-center justify-content-center" style={{width: '40px', height: '40px'}}>
                                 <i className="bi bi-car-front-fill"></i>
                               </div>
-                              <div>
-                                <div className="fw-bold text-dark">{car.model}</div>
-                                <div className="d-md-none small text-muted font-monospace mt-1">{car.plate_number}</div>
+                              <div className="d-flex flex-wrap align-items-center">
+                                <span className="fw-bold text-dark me-2">{car.model}</span>
+                                <span className="d-md-none font-monospace bg-light px-2 py-0 rounded text-secondary border small" style={{fontSize: '0.9em'}}>{car.plate_number}</span>
                               </div>
                           </div>
                         </td>
                         <td className="d-none d-md-table-cell">
+                          <div className="d-flex flex-column align-items-start">
                             <span className="font-monospace bg-light px-2 py-1 rounded text-secondary border">
                                 {car.plate_number}
                             </span>
+                            {(car as any).total_days_rented > 0 && (
+                              <small className="text-muted mt-1 align-items-center d-flex" title={t.total_rentals || 'Total Rented Days'}>
+                                  <i className="bi bi-clock-history me-1 text-primary"></i> 
+                                  {(car as any).total_days_rented} {t.rental_duration?.split(' ')[1]?.replace(')', '').replace('(', '') || 'Days'}
+                              </small>
+                            )}
+                          </div>
                         </td>
                         <td>
                           {car.status === 'available' && <span className="badge bg-success bg-opacity-10 text-success rounded-pill px-3 py-2">{t.available}</span>}
@@ -246,9 +267,11 @@ export default function CarsPage() {
                             <div className="d-flex flex-column align-items-start">
                               <span className="badge bg-info bg-opacity-10 text-info rounded-pill px-3 py-2 mb-1">{t.rented}</span>
                               {car.current_rental && (
-                                <small className="text-muted d-flex align-items-center" style={{ fontSize: '0.7rem' }}>
+                                <small className="text-muted d-flex align-items-center" style={{ fontSize: '0.75rem', whiteSpace: 'nowrap' }}>
                                   <i className="bi bi-calendar3 me-1"></i>
-                                  {car.current_rental.start_date} <i className="bi bi-arrow-right-short mx-1"></i> {car.current_rental.return_date}
+                                  {formatDate(car.current_rental.start_date)} 
+                                  <span className="mx-1">–</span> 
+                                  {formatDate(car.current_rental.return_date)}
                                 </small>
                               )}
                             </div>
@@ -257,35 +280,39 @@ export default function CarsPage() {
                              <div className="d-flex flex-column align-items-start">
                               <span className="badge bg-warning bg-opacity-10 text-warning rounded-pill px-3 py-2 mb-1">{t.reserved}</span>
                               {car.current_rental && (
-                                <small className="text-muted d-flex align-items-center" style={{ fontSize: '0.7rem' }}>
+                                <small className="text-muted d-flex align-items-center" style={{ fontSize: '0.75rem', whiteSpace: 'nowrap' }}>
                                   <i className="bi bi-calendar3 me-1"></i>
-                                  {car.current_rental.start_date} <i className="bi bi-arrow-right-short mx-1"></i> {car.current_rental.return_date}
+                                  {formatDate(car.current_rental.start_date)} 
+                                  <span className="mx-1">–</span> 
+                                  {formatDate(car.current_rental.return_date)}
                                 </small>
                               )}
                             </div>
                           )}
                         </td>
                         <td className="text-end pe-4">
-                          <div className="btn-group">
-                            {car.status !== 'available' && (
-                              <button onClick={() => handleStatusChange(car._id, 'available')} className="btn btn-sm btn-light text-success me-1" title={t.available} data-bs-toggle="tooltip">
-                                <i className="bi bi-check-circle-fill fs-6"></i>
-                              </button>
-                            )}
+                          <div className="btn-group gap-2"> {/* Added gap for spacing */}
+                            {/* Action Buttons styled like Image 2 */}
                             {car.status !== 'reserved' && (
-                              <button onClick={() => handleStatusChange(car._id, 'reserved')} className="btn btn-sm btn-light text-warning me-1" title={t.reserved}>
-                                <i className="bi bi-clock-fill fs-6"></i>
-                              </button>
+                                <button onClick={() => handleStatusChange(car._id, 'reserved')} className="btn btn-sm btn-light text-warning rounded-circle d-flex align-items-center justify-content-center" style={{width: '32px', height: '32px'}} title={t.reserved}>
+                                    <i className="bi bi-clock-fill fs-6"></i>
+                                </button>
                             )}
                             {car.status !== 'rented' && (
-                              <button onClick={() => handleStatusChange(car._id, 'rented')} className="btn btn-sm btn-light text-info me-1" title={t.rented}>
-                                <i className="bi bi-key-fill fs-6"></i>
-                              </button>
+                                <button onClick={() => handleStatusChange(car._id, 'rented')} className="btn btn-sm btn-light text-info rounded-circle d-flex align-items-center justify-content-center" style={{width: '32px', height: '32px'}} title={t.rented}>
+                                    <i className="bi bi-key-fill fs-6"></i>
+                                </button>
                             )}
-                            <button onClick={() => openEditModal(car)} className="btn btn-sm btn-light text-primary me-1" title={t.edit}>
+                            {car.status !== 'available' && (
+                                <button onClick={() => handleStatusChange(car._id, 'available')} className="btn btn-sm btn-light text-success rounded-circle d-flex align-items-center justify-content-center" style={{width: '32px', height: '32px'}} title={t.available}>
+                                    <i className="bi bi-check-lg fs-6"></i>
+                                </button>
+                            )}
+
+                            <button onClick={() => openEditModal(car)} className="btn btn-sm btn-light text-primary rounded-circle d-flex align-items-center justify-content-center" style={{width: '32px', height: '32px'}} title={t.edit}>
                               <i className="bi bi-pencil-fill fs-6"></i>
                             </button>
-                            <button onClick={() => handleDelete(car._id)} className="btn btn-sm btn-light text-danger" title={t.delete}>
+                            <button onClick={() => handleDelete(car._id)} className="btn btn-sm btn-light text-danger rounded-circle d-flex align-items-center justify-content-center" style={{width: '32px', height: '32px'}} title={t.delete}>
                               <i className="bi bi-trash-fill fs-6"></i>
                             </button>
                           </div>

@@ -157,6 +157,7 @@ export default function ExpensesPage() {
       case 'timing_belt': return t.cat_belt;
       case 'tires': return t.cat_tires;
       case 'tax': return t.cat_tax;
+      case 'cnss': return t.cat_cnss;
       case 'fuel': return t.fuel; // Keep for backward compatibility mostly
       default: return t.other;
     }
@@ -174,6 +175,7 @@ export default function ExpensesPage() {
       case 'timing_belt': return 'bg-danger';
       case 'tires': return 'bg-dark';
       case 'tax': return 'bg-danger';
+      case 'cnss': return 'bg-success';
       default: return 'bg-secondary';
     }
   };
@@ -327,6 +329,7 @@ export default function ExpensesPage() {
                                 <option value="timing_belt">{t.cat_belt}</option>
                                 <option value="tires">{t.cat_tires}</option>
                                 <option value="tax">{t.cat_tax}</option>
+                                <option value="cnss">{t.cat_cnss}</option>
                                 <option value="other">{t.other}</option>
                            </select>
                         </div>

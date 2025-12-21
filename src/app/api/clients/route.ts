@@ -77,14 +77,20 @@ export async function PUT(request: NextRequest) {
                     if (publicId) await cloudinary.uploader.destroy(publicId);
                 };
 
-                // If new passport image is provided and differs from old one, delete old one
-                if (passport_image && existingClient.passport_image && existingClient.passport_image !== passport_image) {
-                     await deleteImage(existingClient.passport_image);
-                }
-                // If new license image is provided and differs from old one, delete old one
-                if (license_image && existingClient.license_image && existingClient.license_image !== license_image) {
-                     await deleteImage(existingClient.license_image);
-                }
+                const deleteImagesIfReplaced = async (oldImagesStr: string | null | undefined, newImagesStr: string | null | undefined) => {
+                     if (!oldImagesStr) return;
+                     const oldImages = oldImagesStr.split(',');
+                     const newImages = newImagesStr ? newImagesStr.split(',') : [];
+                     
+                     for (const oldUrl of oldImages) {
+                         if (!newImages.includes(oldUrl)) {
+                             await deleteImage(oldUrl)
+                         }
+                     }
+                };
+
+                await deleteImagesIfReplaced(existingClient.passport_image, passport_image);
+                await deleteImagesIfReplaced(existingClient.license_image, license_image);
              }
            } catch (e) {
                console.error("Failed to delete old images", e);
@@ -92,28 +98,6 @@ export async function PUT(request: NextRequest) {
        }
     }
 
-    // Pass images to update method if they exist in body, otherwise keep them undefined/as is
-    // We need to update ClientModel.update to accept images, or create a new update method.
-    // The current ClientModel.update signature is update(id, full_name, passport_id, driving_license).
-    // Let's modify ClientModel.update in the next step or assume it accepts partial updates if we were using a generic update.
-    // Since ClientModel is strictly typed, let's update call here, but first we need to update the model.
-    // Wait, ClientModel.update currently DOES NOT accept images. I need to update ClientModel first or use a raw update here?
-    // I will update ClientModel.update in the same turn if possible, or just hack it here?
-    // Proper way: Update ClientModel.update signature in separate tool call? 
-    // Actually I can update the route to call a more generic update or I can pass images to it AFTER I update the model.
-    // Let's assume I will update the model. For now, I'll pass the arguments. 
-    // Actually, looking at the code, I need to update the model first or the file content replace will fail to compile TS if I simply change call.
-    // But this file `route.ts` is what I am editing. 
-    // Let's modify the `update` call in `ClientModel` in `lib/models.ts` FIRST? No, I am already in `route.ts` context. 
-    // I'll update `ClientModel.update` signature in `lib/models.ts` in a separate call, but since I cannot do parallel dependent edits easily without breaking build,
-    // I will just use a direct db call here or update the model first. 
-    // Wait, I can do multiple tool calls. 
-    // Let's update `ClientModel` to accept images in update.
-    
-    // Changing plan: I will update `ClientModel.update` in `lib/models.ts` first, then `route.ts`.
-    // But I am already writing the replacement for `route.ts`.
-    // I will return the original code + image handling logic but call a new method `updateWithImages` or just update the `update` method.
-    
     await ClientModel.update(id, full_name, passport_id, driving_license, passport_image, license_image);
     return NextResponse.json({ success: true });
   } catch (error) {
@@ -166,9 +150,17 @@ export async function DELETE(request: NextRequest) {
                     await cloudinary.uploader.destroy(publicId);
                 }
             };
+            
+            const deleteImageList = async (imagesStr: string | null | undefined) => {
+                if (!imagesStr) return;
+                const images = imagesStr.split(',');
+                for (const url of images) {
+                    await deleteImage(url);
+                }
+            };
 
-            if (client.passport_image) await deleteImage(client.passport_image);
-            if (client.license_image) await deleteImage(client.license_image);
+            await deleteImageList(client.passport_image);
+            await deleteImageList(client.license_image);
         } else {
              console.warn('CLOUDINARY_API_KEY or CLOUDINARY_API_SECRET not found in environment variables. Skipping Cloudinary deletion.');
         }

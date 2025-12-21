@@ -10,6 +10,16 @@ export async function GET(request: NextRequest) {
   }
 
   const { searchParams } = new URL(request.url);
+  const id = searchParams.get('id');
+
+  if (id) {
+    const rental = await RentalModel.getById(id);
+    if (!rental) {
+        return NextResponse.json({ error: 'Rental not found' }, { status: 404 });
+    }
+    return NextResponse.json(rental);
+  }
+
   const page = parseInt(searchParams.get('page') || '1');
   const limit = parseInt(searchParams.get('limit') || '20');
   const search = searchParams.get('search') || '';
@@ -46,6 +56,10 @@ export async function POST(request: NextRequest) {
   }
 
   try {
+    const hasOverlap = await RentalModel.checkOverlap(car_id, start_date, return_date);
+    if (hasOverlap) {
+        return NextResponse.json({ error: 'This car is already reserved for the selected time.' }, { status: 409 });
+    }
     await RentalModel.create(car_id, client_id, start_date, return_date, parseFloat(rental_price) || 0);
     return NextResponse.json({ success: true });
   } catch (error) {
@@ -73,6 +87,10 @@ export async function PUT(request: NextRequest) {
     } else {
       if (!car_id || !client_id || !start_date || !return_date) {
         return NextResponse.json({ error: 'Missing fields' }, { status: 400 });
+      }
+      const hasOverlap = await RentalModel.checkOverlap(car_id, start_date, return_date, id);
+      if (hasOverlap) {
+          return NextResponse.json({ error: 'This car is already reserved for the selected time.' }, { status: 409 });
       }
       await RentalModel.update(id, car_id, client_id, start_date, return_date, parseFloat(rental_price) || 0);
     }

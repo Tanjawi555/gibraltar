@@ -57,6 +57,7 @@ export interface Translations {
   rental_price: string;
   mark_rented: string;
   mark_returned: string;
+  rental_duration: string;
   add_expense: string;
   category: string;
   amount: string;
@@ -88,8 +89,19 @@ export interface Translations {
   cat_belt: string;
   cat_tires: string;
   cat_tax: string;
+  cat_cnss: string;
   search_placeholder: string;
   more: string;
+  front: string;
+  back: string;
+  contract: string;
+  payment_info: string;
+  total_amount: string;
+  paid_amount: string;
+  remaining_amount: string;
+  print_contract: string;
+  signature: string;
+  terms: string;
 }
 
 const TRANSLATIONS: Record<Language, Translations> = {
@@ -150,6 +162,7 @@ const TRANSLATIONS: Record<Language, Translations> = {
     rental_price: 'سعر الإيجار',
     mark_rented: 'تحويل إلى مؤجرة',
     mark_returned: 'تحويل إلى مُعادة',
+    rental_duration: 'المدة (أيام)',
     add_expense: 'إضافة مصروف',
     category: 'الفئة',
     amount: 'المبلغ',
@@ -181,8 +194,19 @@ const TRANSLATIONS: Record<Language, Translations> = {
     cat_belt: 'سير التايمن',
     cat_tires: 'إطارات',
     cat_tax: 'ضريبة',
+    cat_cnss: 'كازنوس',
     search_placeholder: 'بحث في الإيجارات...',
     more: 'المزيد',
+    front: 'أمامي',
+    back: 'خلفي',
+    contract: 'عقد إيجار',
+    payment_info: 'معلومات الدفع',
+    total_amount: 'المبلغ الإجمالي',
+    paid_amount: 'المبلغ المدفوع',
+    remaining_amount: 'المبلغ المتبقي',
+    print_contract: 'طباعة العقد',
+    signature: 'الإمضاء',
+    terms: 'الشروط والأحكام',
   },
   en: {
     app_name: 'Car Rental System',
@@ -241,6 +265,7 @@ const TRANSLATIONS: Record<Language, Translations> = {
     rental_price: 'Rental Price',
     mark_rented: 'Mark as Rented',
     mark_returned: 'Mark as Returned',
+    rental_duration: 'Duration (Days)',
     add_expense: 'Add Expense',
     category: 'Category',
     amount: 'Amount',
@@ -272,8 +297,19 @@ const TRANSLATIONS: Record<Language, Translations> = {
     cat_belt: 'timing Belt',
     cat_tires: 'tires',
     cat_tax: 'Tax',
+    cat_cnss: 'CNSS',
     search_placeholder: 'Search rentals...',
     more: 'Menu',
+    front: 'Front',
+    back: 'Back',
+    contract: 'Rental Contract',
+    payment_info: 'Payment Info',
+    total_amount: 'Total Amount',
+    paid_amount: 'Paid Amount',
+    remaining_amount: 'Remaining Amount',
+    print_contract: 'Print Contract',
+    signature: 'Signature',
+    terms: 'Terms & Conditions',
   },
   fr: {
     app_name: 'Système de Location de Voitures',
@@ -332,6 +368,7 @@ const TRANSLATIONS: Record<Language, Translations> = {
     rental_price: 'Prix de Location',
     mark_rented: 'Marquer Louée',
     mark_returned: 'Marquer Rendue',
+    rental_duration: 'Durée (Jours)',
     add_expense: 'Ajouter Dépense',
     category: 'Catégorie',
     amount: 'Montant',
@@ -363,8 +400,19 @@ const TRANSLATIONS: Record<Language, Translations> = {
     cat_belt: 'Courroie de distribution',
     cat_tires: 'Pneus',
     cat_tax: 'Taxe',
+    cat_cnss: 'CNSS',
     search_placeholder: 'Rechercher des locations...',
     more: 'Menu',
+    front: 'Recto',
+    back: 'Verso',
+    contract: 'Contrat de Location',
+    payment_info: 'Infos Paiement',
+    total_amount: 'Montant Total',
+    paid_amount: 'Montant Payé',
+    remaining_amount: 'Reste à Payer',
+    print_contract: 'Imprimer Contrat',
+    signature: 'Signature',
+    terms: 'Termes et Conditions',
   },
 };
 

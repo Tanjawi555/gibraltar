@@ -23,8 +23,10 @@ export default function ClientsPage() {
   const [showModal, setShowModal] = useState(false);
   const [editingClient, setEditingClient] = useState<Client | null>(null);
   const [formData, setFormData] = useState({ full_name: '' });
-  const [passportFile, setPassportFile] = useState<File | null>(null);
-  const [licenseFile, setLicenseFile] = useState<File | null>(null);
+  const [passportFrontFile, setPassportFrontFile] = useState<File | null>(null);
+  const [passportBackFile, setPassportBackFile] = useState<File | null>(null);
+  const [licenseFrontFile, setLicenseFrontFile] = useState<File | null>(null);
+  const [licenseBackFile, setLicenseBackFile] = useState<File | null>(null);
   const [message, setMessage] = useState<{ type: string; text: string } | null>(null);
   const [uploading, setUploading] = useState(false);
   const [previewImage, setPreviewImage] = useState<string | null>(null);
@@ -119,19 +121,44 @@ export default function ClientsPage() {
     e.preventDefault();
     setUploading(true);
     try {
-      let passport_image = editingClient?.passport_image; // Keep existing image by default
-      let license_image = editingClient?.license_image;
+      // Handle Passport Images
+      let currentPassportImages = editingClient?.passport_image ? editingClient.passport_image.split(',') : [];
+      // Treat first item as Front, second as Back (if available). 
+      // Note: If previous data wasn't slot-strict, single images appear as Front. This is acceptable default.
+      let passportFrontUrl = currentPassportImages[0] || '';
+      let passportBackUrl = currentPassportImages[1] || '';
 
-      if (passportFile) {
-        const url = await uploadToCloudinary(passportFile);
-        if (url) passport_image = url;
-        else { setUploading(false); return; } // Stop if upload fails
-      }
-      if (licenseFile) {
-        const url = await uploadToCloudinary(licenseFile);
-        if (url) license_image = url;
+      if (passportFrontFile) {
+        const url = await uploadToCloudinary(passportFrontFile);
+        if (url) passportFrontUrl = url;
         else { setUploading(false); return; }
       }
+      if (passportBackFile) {
+        const url = await uploadToCloudinary(passportBackFile);
+        if (url) passportBackUrl = url;
+        else { setUploading(false); return; }
+      }
+      // Join with comma, preserving empty slots (e.g. ",url" or "url,"). If both empty, result is empty string.
+      const passportArray = [passportFrontUrl, passportBackUrl];
+      const passport_image = passportArray.every(u => !u) ? '' : passportArray.join(',');
+
+      // Handle License Images
+      let currentLicenseImages = editingClient?.license_image ? editingClient.license_image.split(',') : [];
+      let licenseFrontUrl = currentLicenseImages[0] || '';
+      let licenseBackUrl = currentLicenseImages[1] || '';
+
+      if (licenseFrontFile) {
+        const url = await uploadToCloudinary(licenseFrontFile);
+        if (url) licenseFrontUrl = url;
+        else { setUploading(false); return; }
+      }
+      if (licenseBackFile) {
+        const url = await uploadToCloudinary(licenseBackFile);
+        if (url) licenseBackUrl = url;
+        else { setUploading(false); return; }
+      }
+      const licenseArray = [licenseFrontUrl, licenseBackUrl];
+      const license_image = licenseArray.every(u => !u) ? '' : licenseArray.join(',');
 
       if (editingClient) {
         await fetch('/api/clients', {
@@ -140,7 +167,7 @@ export default function ClientsPage() {
           body: JSON.stringify({ 
             id: editingClient._id, 
             ...formData,
-            passport_image, // Pass the URLs (new or existing)
+            passport_image, 
             license_image
           }),
         });
@@ -155,8 +182,10 @@ export default function ClientsPage() {
       setShowModal(false);
       setEditingClient(null);
       setFormData({ full_name: '' });
-      setPassportFile(null);
-      setLicenseFile(null);
+      setPassportFrontFile(null);
+      setPassportBackFile(null);
+      setLicenseFrontFile(null);
+      setLicenseBackFile(null);
       fetchClients();
     } catch (error) {
       showMessage_('danger', t.error);
@@ -180,8 +209,10 @@ export default function ClientsPage() {
     setEditingClient(client);
     setFormData({ full_name: client.full_name });
     setShowModal(true);
-    setPassportFile(null);
-    setLicenseFile(null);
+    setPassportFrontFile(null);
+    setPassportBackFile(null);
+    setLicenseFrontFile(null);
+    setLicenseBackFile(null);
   };
 
   if (status === 'loading') {
@@ -272,20 +303,32 @@ export default function ClientsPage() {
                         </td>
                         <td>
                           {client.passport_image ? (
-                            <button onClick={() => setPreviewImage(client.passport_image!)} className="btn btn-sm btn-light text-primary border-0 d-inline-flex align-items-center">
-                              <i className="bi bi-file-earmark-person-fill me-2 fs-6"></i>
-                              <span className="d-none d-lg-inline">{t.view_document || 'View Passport'}</span>
-                            </button>
+                            <div className="d-flex gap-1">
+                              {client.passport_image.split(',').map((url, i) => (
+                                url ? (
+                                  <button key={`${client._id}-p-${i}`} onClick={() => setPreviewImage(url)} className="btn btn-sm btn-light text-primary border-0 d-inline-flex align-items-center" title={i === 0 ? "Front" : "Back"}>
+                                    <i className="bi bi-file-earmark-person-fill me-1 fs-6"></i>
+                                    <span className="d-none d-lg-inline">{i === 0 ? (t.front || 'Front') : (t.back || 'Back')}</span>
+                                  </button>
+                                ) : null
+                              ))}
+                            </div>
                           ) : (
                             <span className="badge bg-light text-muted fw-normal border px-3 py-2">{t.no_image}</span>
                           )}
                         </td>
                         <td>
                           {client.license_image ? (
-                            <button onClick={() => setPreviewImage(client.license_image!)} className="btn btn-sm btn-light text-primary border-0 d-inline-flex align-items-center">
-                              <i className="bi bi-card-heading me-2 fs-6"></i>
-                              <span className="d-none d-lg-inline">{t.view_document || 'View License'}</span>
-                            </button>
+                             <div className="d-flex gap-1">
+                              {client.license_image.split(',').map((url, i) => (
+                                url ? (
+                                  <button key={`${client._id}-l-${i}`} onClick={() => setPreviewImage(url)} className="btn btn-sm btn-light text-primary border-0 d-inline-flex align-items-center" title={i === 0 ? "Front" : "Back"}>
+                                    <i className="bi bi-card-heading me-1 fs-6"></i>
+                                    <span className="d-none d-lg-inline">{i === 0 ? (t.front || 'Front') : (t.back || 'Back')}</span>
+                                  </button>
+                                ) : null
+                              ))}
+                             </div>
                           ) : (
                              <span className="badge bg-light text-muted fw-normal border px-3 py-2">{t.no_image}</span>
                           )}
@@ -374,17 +417,37 @@ export default function ClientsPage() {
                       <div className="row">
                         <div className="col-md-6 mb-3">
                           <label className="form-label">{t.passport_image}</label>
-                          <input type="file" className="form-control" accept="image/*" onChange={(e) => setPassportFile(e.target.files?.[0] || null)} />
-                          {editingClient?.passport_image && !passportFile && (
-                            <small className="text-muted d-block mt-1">Current: <a href={editingClient.passport_image} target="_blank" rel="noreferrer">View</a></small>
-                          )}
+                          <div className="mb-2">
+                             <small className="text-muted d-block mb-1">{t.front || "Front Side"}</small>
+                             <input type="file" className="form-control" accept="image/*" onChange={(e) => setPassportFrontFile(e.target.files?.[0] || null)} />
+                             {editingClient?.passport_image && editingClient.passport_image.split(',')[0] && !passportFrontFile && (
+                                <small className="text-muted d-block mt-1">Current: <a href={editingClient.passport_image.split(',')[0]} target="_blank" rel="noreferrer">View</a></small>
+                             )}
+                          </div>
+                          <div>
+                             <small className="text-muted d-block mb-1">{t.back || "Back Side"}</small>
+                             <input type="file" className="form-control" accept="image/*" onChange={(e) => setPassportBackFile(e.target.files?.[0] || null)} />
+                             {editingClient?.passport_image && editingClient.passport_image.split(',')[1] && !passportBackFile && (
+                                <small className="text-muted d-block mt-1">Current: <a href={editingClient.passport_image.split(',')[1]} target="_blank" rel="noreferrer">View</a></small>
+                             )}
+                          </div>
                         </div>
                         <div className="col-md-6 mb-3">
                           <label className="form-label">{t.license_image}</label>
-                          <input type="file" className="form-control" accept="image/*" onChange={(e) => setLicenseFile(e.target.files?.[0] || null)} />
-                           {editingClient?.license_image && !licenseFile && (
-                            <small className="text-muted d-block mt-1">Current: <a href={editingClient.license_image} target="_blank" rel="noreferrer">View</a></small>
-                          )}
+                          <div className="mb-2">
+                             <small className="text-muted d-block mb-1">{t.front || "Front Side"}</small>
+                             <input type="file" className="form-control" accept="image/*" onChange={(e) => setLicenseFrontFile(e.target.files?.[0] || null)} />
+                             {editingClient?.license_image && editingClient.license_image.split(',')[0] && !licenseFrontFile && (
+                                <small className="text-muted d-block mt-1">Current: <a href={editingClient.license_image.split(',')[0]} target="_blank" rel="noreferrer">View</a></small>
+                             )}
+                          </div>
+                          <div>
+                             <small className="text-muted d-block mb-1">{t.back || "Back Side"}</small>
+                             <input type="file" className="form-control" accept="image/*" onChange={(e) => setLicenseBackFile(e.target.files?.[0] || null)} />
+                             {editingClient?.license_image && editingClient.license_image.split(',')[1] && !licenseBackFile && (
+                                <small className="text-muted d-block mt-1">Current: <a href={editingClient.license_image.split(',')[1]} target="_blank" rel="noreferrer">View</a></small>
+                             )}
+                          </div>
                         </div>
                       </div>
                   </div>
@@ -409,7 +472,7 @@ export default function ClientsPage() {
         <button 
           className="btn btn-primary rounded-circle shadow-lg d-flex align-items-center justify-content-center position-fixed animate-fade-in-up" 
           style={{ width: '60px', height: '60px', bottom: '90px', right: '20px', zIndex: 1050 }}
-          onClick={() => { setEditingClient(null); setFormData({ full_name: '' }); setShowModal(true); }}
+          onClick={() => { setEditingClient(null); setFormData({ full_name: '' }); setShowModal(true); setPassportFrontFile(null); setPassportBackFile(null); setLicenseFrontFile(null); setLicenseBackFile(null); }}
         >
            <i className="bi bi-plus-lg fs-2"></i>
         </button>
