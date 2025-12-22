@@ -323,17 +323,35 @@ export const ClientModel = {
   },
 };
 
+import { toUTCISO, isStartingToday, isStartingTomorrow, isStartingToday as isReturnToday, getNow, getTimezone } from './timezone';
+import { addMonths, format } from 'date-fns';
+import { toZonedTime } from 'date-fns-tz';
+
+// ... (CarModel, ClientModel unchanged) ...
+
 export const RentalModel = {
   async getAll(month?: string, year?: string) {
     const db = await getDatabase();
     
     const query: any = {};
     if (month && year) {
-        // Construct query for specific month/year based on start_date
-        // start_date format is ISO string "2024-05-20T..."
-        // Regex: ^YYYY-MM
-        const monthStr = month.padStart(2, '0');
-        query.start_date = { $regex: `^${year}-${monthStr}` };
+        // Timezone-safe month filtering
+        // Construct Start of Month in Business Time
+        const startStr = `${year}-${month.padStart(2, '0')}-01T00:00`; 
+        const startUTC = toUTCISO(startStr);
+        
+        // Construct Start of Next Month
+        // We can just increment month, handle year rollover
+        let nextMonth = parseInt(month) + 1;
+        let nextYear = parseInt(year);
+        if (nextMonth > 12) {
+            nextMonth = 1;
+            nextYear++;
+        }
+        const endStr = `${nextYear}-${nextMonth.toString().padStart(2, '0')}-01T00:00`;
+        const endUTC = toUTCISO(endStr);
+
+        query.start_date = { $gte: startUTC, $lt: endUTC };
     }
 
     const rentals = await db.collection('rentals').aggregate([
@@ -415,8 +433,8 @@ export const RentalModel = {
           client_name: '$client.full_name',
           passport_id: '$client.passport_id',
           driving_license: '$client.driving_license',
-          client_address: '$client.address', // Assuming address exists or optional
-          client_phone: '$client.phone', // Assuming phone exists or optional
+          client_address: '$client.address', 
+          client_phone: '$client.phone',
         },
       },
     ]).toArray();
@@ -462,16 +480,19 @@ export const RentalModel = {
         },
       }
     ];
-    
-    // Add Match stage BEFORE or AFTER lookup? 
-    // Ideally before to limit lookups, but start_date is in 'rentals' collection so we can put it first.
-    // BUT we used pipeline which puts lookup first. We can add a match at the start of pipeline if we want query optimization,
-    // or just add it to the search match.
-    // Let's add a match stage for date filtering at the VERY BEGINNING of the pipeline
+
     if (month && year) {
-        const monthStr = month.padStart(2, '0');
+        const startStr = `${year}-${month.padStart(2, '0')}-01T00:00`; 
+        const startUTC = toUTCISO(startStr);
+        let nextMonth = parseInt(month) + 1;
+        let nextYear = parseInt(year);
+        if (nextMonth > 12) { nextMonth = 1; nextYear++; }
+        const endStr = `${nextYear}-${nextMonth.toString().padStart(2, '0')}-01T00:00`;
+        const endUTC = toUTCISO(endStr);
+        
+        // Match stage at the beginning for index optimization
         pipeline.unshift({
-            $match: { start_date: { $regex: `^${year}-${monthStr}` } }
+            $match: { start_date: { $gte: startUTC, $lt: endUTC } }
         });
     }
 
@@ -487,8 +508,6 @@ export const RentalModel = {
       });
     }
 
-    // We need two things: total count and paginated results.
-    // We can use $facet to get both in one query, improving performance.
     const result = await db.collection('rentals').aggregate([
       ...pipeline,
       {
@@ -513,7 +532,6 @@ export const RentalModel = {
     const db = await getDatabase();
     const rental = await db.collection('rentals').findOne({ _id: new ObjectId(id) });
     if (rental && rental.status !== 'returned') {
-      // If we are deleting an active/reserved rental, free up the car
       await db.collection('cars').updateOne(
         { _id: rental.car_id },
         { $set: { status: 'available' } }
@@ -524,14 +542,23 @@ export const RentalModel = {
 
   async checkOverlap(car_id: string, start_date: string, return_date: string, exclude_rental_id?: string) {
     const db = await getDatabase();
+    
+    // Convert inputs to UTC ISO if they are not already (assuming inputs are coming from UI in Business Time)
+    // NOTE: This assumes caller passes Business Time strings. 
+    // If create() calls this, it should pass UTC or we handle it here. 
+    // Best practice: The caller (create/update) normalizes data to UTC FIRST, then calls this.
+    // Normalize dates to UTC for comparison with DB
+    const startUTC = toUTCISO(start_date);
+    const endUTC = toUTCISO(return_date);
+    
     const query: any = {
       car_id: new ObjectId(car_id),
       status: { $in: ['reserved', 'rented'] },
       $or: [
         {
           $and: [
-            { start_date: { $lt: return_date } },
-            { return_date: { $gt: start_date } }
+            { start_date: { $lt: endUTC } },
+            { return_date: { $gt: startUTC } }
           ]
         }
       ]
@@ -554,16 +581,21 @@ export const RentalModel = {
     status: 'reserved' | 'rented' = 'reserved'
   ) {
     const db = await getDatabase();
+    
+    // DATA NORMALIZATION: Convert Business Time Inputs to UTC ISO
+    const startUTC = toUTCISO(start_date);
+    const returnUTC = toUTCISO(return_date);
+
     const result = await db.collection('rentals').insertOne({
       car_id: new ObjectId(car_id),
       client_id: new ObjectId(client_id),
-      start_date,
-      return_date,
+      start_date: startUTC,
+      return_date: returnUTC,
       rental_price,
-      status, // Use the passed status
+      status, 
       created_at: new Date(),
     });
-    // Update car status to match the rental status
+    
     await db.collection('cars').updateOne(
       { _id: new ObjectId(car_id) },
       { $set: { status } }
@@ -589,80 +621,23 @@ export const RentalModel = {
 
   async checkExpiredRentals() {
     const db = await getDatabase();
-    // Use current local time or ISO. Since stored dates are ISO string "YYYY-MM-DDTHH:mm", simple string comparison works.
-    // However, we want to be precise. 
-    // We assume the system is running in the correct timezone or the user inputs local time.
-    // For now, we compare against ISO string of now.
-    // Ideally we should handle timezone offset if user is in a specific zone, but without timezone config, UTC/ISO is best bet.
-    // Wait, the user inputs "YYYY-MM-DDTHH:mm" from <input type="datetime-local">. This value is usually "local" time without timezone info.
-    // If we compare it to new Date().toISOString() (which is UTC), we might be off by hours.
-    // But since this runs on server, new Date() is server time.
-    // Ideally we'd use a library like date-fns-tz but let's stick to simple string comparison.
-    // To match "datetime-local" format (no Z):
-    // To ensure consistency on Live servers (which usually look at UTC), we FORCE the check to use Morocco Time (Africa/Casablanca).
-    // This way, regardless of where the server is hosted, it compares against the correct wall-clock time in Morocco.
-    
-    const getEnvironmentTimeISO = () => {
-        // Detect environment
-        const isDevelopment = process.env.NODE_ENV === 'development';
+    // NEW LOGIC: Compare against strict UTC Timestamp
+    const nowUTC = getNow().toISOString();
 
-        if (isDevelopment) {
-             // Local Development: Use the computer's local time
-             const d = new Date();
-             const pad = (n: number) => n < 10 ? '0' + n : n;
-             return d.getFullYear() + '-' + 
-               pad(d.getMonth() + 1) + '-' + 
-               pad(d.getDate()) + 'T' + 
-               pad(d.getHours()) + ':' + 
-               pad(d.getMinutes());
-        } else {
-             // Live/Production: Strictly use Morocco Time
-             const options: Intl.DateTimeFormatOptions = {
-                timeZone: 'Africa/Casablanca',
-                year: 'numeric',
-                month: '2-digit',
-                day: '2-digit',
-                hour: '2-digit',
-                minute: '2-digit',
-                hour12: false
-            };
-            
-            const formatter = new Intl.DateTimeFormat('en-CA', { 
-                ...options, 
-                year: 'numeric', month: '2-digit', day: '2-digit'
-            });
-            const timeFormatter = new Intl.DateTimeFormat('en-GB', { 
-                ...options,
-                hour: '2-digit', minute: '2-digit'
-            });
-
-            const dateStr = formatter.format(new Date()); 
-            const timeStr = timeFormatter.format(new Date());
-
-            return `${dateStr}T${timeStr}`;
-        }
-    };
-    
-    const nowStr = getEnvironmentTimeISO();
-
-    // 1. Find expired rentals OR reservations (rented/reserved -> returned)
-    // "status" in ['rented', 'reserved'] AND return_date < now
     const expiredRentals = await db.collection('rentals').find({
         status: { $in: ['rented', 'reserved'] },
-        return_date: { $lt: nowStr }
+        return_date: { $lt: nowUTC } // Strict string comparison works for ISO UTC
     }).toArray();
 
     if (expiredRentals.length > 0) {
         const rentalIds = expiredRentals.map(r => r._id);
         const carIds = expiredRentals.map(r => r.car_id);
 
-        // Mark rentals/reservations as returned
         await db.collection('rentals').updateMany(
             { _id: { $in: rentalIds } },
             { $set: { status: 'returned' } }
         );
 
-        // Mark cars as available
         await db.collection('cars').updateMany(
             { _id: { $in: carIds } },
             { $set: { status: 'available' } }
@@ -679,176 +654,102 @@ export const RentalModel = {
     rental_price: number
   ) {
     const db = await getDatabase();
+    
+    // DATA NORMALIZATION
+    const startUTC = toUTCISO(start_date);
+    const returnUTC = toUTCISO(return_date);
+
     return db.collection('rentals').updateOne(
       { _id: new ObjectId(id) },
       {
         $set: {
           car_id: new ObjectId(car_id),
           client_id: new ObjectId(client_id),
-          start_date,
-          return_date,
+          start_date: startUTC,
+          return_date: returnUTC,
           rental_price,
         },
       }
     );
   },
 
-
-
   async getNotifications() {
     const db = await getDatabase();
-    const today = new Date().toISOString().split('T')[0];
-    const tomorrow = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString().split('T')[0];
-
     const notifications: any[] = [];
 
-    // Use $regex to match dates that start with the string (handles both "YYYY-MM-DD" and "YYYY-MM-DDTHH:mm")
-    const startingToday = await db.collection('rentals').aggregate([
-      { $match: { start_date: { $regex: `^${today}` }, status: 'reserved' } },
-      {
-        $lookup: {
-          from: 'cars',
-          localField: 'car_id',
-          foreignField: '_id',
-          as: 'car',
+    // Filter Optimization: 
+    // We can't easily query "Start Today" in Mongo if dates are UTC and "Today" is variable.
+    // Strategy: Fetch active reservations and rentals, filter in JS.
+    // This is performant for < 10,000 active rentals.
+    
+    const activeRentals = await db.collection('rentals').aggregate([
+        { $match: { status: { $in: ['reserved', 'rented'] } } },
+        {
+            $lookup: {
+              from: 'cars',
+              localField: 'car_id',
+              foreignField: '_id',
+              as: 'car',
+            },
         },
-      },
-      {
-        $lookup: {
-          from: 'clients',
-          localField: 'client_id',
-          foreignField: '_id',
-          as: 'client',
+        {
+            $lookup: {
+              from: 'clients',
+              localField: 'client_id',
+              foreignField: '_id',
+              as: 'client',
+            },
         },
-      },
-      { $unwind: '$car' },
-      { $unwind: '$client' },
+        { $unwind: '$car' },
+        { $unwind: '$client' },
     ]).toArray();
 
-    for (const r of startingToday) {
-      notifications.push({
-        type: 'start_today',
-        rental: {
-          ...r,
-          model: r.car.model,
-          plate_number: r.car.plate_number,
-          full_name: r.client.full_name,
-        },
-        severity: 'warning',
-      });
-    }
+    // JS Filtering using Timezone Utils
+    for (const r of activeRentals) {
+        // Warning: r.start_date / r.return_date are UTC strings from DB
+        
+        if (r.status === 'reserved') {
+            if (isStartingToday(r.start_date)) {
+                notifications.push({
+                    type: 'start_today',
+                    rental: { ...r, model: r.car.model, plate_number: r.car.plate_number, full_name: r.client.full_name },
+                    severity: 'warning'
+                });
+            } else if (isStartingTomorrow(r.start_date)) {
+                notifications.push({
+                    type: 'start_tomorrow',
+                    rental: { ...r, model: r.car.model, plate_number: r.car.plate_number, full_name: r.client.full_name },
+                    severity: 'info'
+                });
+            }
+        }
 
-    const startingTomorrow = await db.collection('rentals').aggregate([
-      { $match: { start_date: { $regex: `^${tomorrow}` }, status: 'reserved' } },
-      {
-        $lookup: {
-          from: 'cars',
-          localField: 'car_id',
-          foreignField: '_id',
-          as: 'car',
-        },
-      },
-      {
-        $lookup: {
-          from: 'clients',
-          localField: 'client_id',
-          foreignField: '_id',
-          as: 'client',
-        },
-      },
-      { $unwind: '$car' },
-      { $unwind: '$client' },
-    ]).toArray();
-
-    for (const r of startingTomorrow) {
-      notifications.push({
-        type: 'start_tomorrow',
-        rental: {
-          ...r,
-          model: r.car.model,
-          plate_number: r.car.plate_number,
-          full_name: r.client.full_name,
-        },
-        severity: 'info',
-      });
-    }
-
-    const returnToday = await db.collection('rentals').aggregate([
-      { $match: { return_date: { $regex: `^${today}` }, status: 'rented' } },
-      {
-        $lookup: {
-          from: 'cars',
-          localField: 'car_id',
-          foreignField: '_id',
-          as: 'car',
-        },
-      },
-      {
-        $lookup: {
-          from: 'clients',
-          localField: 'client_id',
-          foreignField: '_id',
-          as: 'client',
-        },
-      },
-      { $unwind: '$car' },
-      { $unwind: '$client' },
-    ]).toArray();
-
-    for (const r of returnToday) {
-      notifications.push({
-        type: 'return_today',
-        rental: {
-          ...r,
-          model: r.car.model,
-          plate_number: r.car.plate_number,
-          full_name: r.client.full_name,
-        },
-        severity: 'warning',
-      });
-    }
-
-    // specific strict comparison for overdue might still work if we assume ISO string sort order
-    // But to be safe with time: return_date < today (string comparison works for ISO dates, "2024-05-20T..." > "2024-05-19")
-    // "2024-05-20T09:00" is effectively "greater" than "2024-05-20" if we compare strings directly?
-    // Wait, "2024-05-20" is shorter. "2024-05-20T..." > "2024-05-20" is true.
-    // So if return date is TODAY (with time), it is NOT less than TODAY (without time).
-    // If return date is YESTERDAY, it is less.
-    // So simple string comparison works fine for "overdue" as strictly < today.
-    // e.g. "2024-05-19T23:59" < "2024-05-20". Correct.
-    const overdue = await db.collection('rentals').aggregate([
-      { $match: { return_date: { $lt: today }, status: 'rented' } },
-      {
-        $lookup: {
-          from: 'cars',
-          localField: 'car_id',
-          foreignField: '_id',
-          as: 'car',
-        },
-      },
-      {
-        $lookup: {
-          from: 'clients',
-          localField: 'client_id',
-          foreignField: '_id',
-          as: 'client',
-        },
-      },
-      { $unwind: '$car' },
-      { $unwind: '$client' },
-    ]).toArray();
-
-    for (const r of overdue) {
-      notifications.push({
-        type: 'overdue',
-        rental: {
-          ...r,
-          model: r.car.model,
-          plate_number: r.car.plate_number,
-          full_name: r.client.full_name,
-        },
-        severity: 'danger',
-      });
+        if (r.status === 'rented') {
+            // Check return today
+            // Note: Reuse isStartingToday logic but for return date
+            // Note 2: Use helper strictly for "Is Today in Business Time"
+            // Re-importing logic or using isSameDayBusiness idea
+            
+            // Check if return date falls on "Today" in Business Time
+            // Reuse isStartingToday logic as it just checks "Is DATE on Today"
+            if (isStartingToday(r.return_date)) { 
+                notifications.push({
+                    type: 'return_today',
+                    rental: { ...r, model: r.car.model, plate_number: r.car.plate_number, full_name: r.client.full_name },
+                    severity: 'warning'
+                });
+            }
+            
+            // Overdue Check
+            // Strict timestamp check
+             if (new Date(r.return_date) < getNow()) {
+                notifications.push({
+                    type: 'overdue',
+                    rental: { ...r, model: r.car.model, plate_number: r.car.plate_number, full_name: r.client.full_name },
+                    severity: 'danger'
+                });
+            }
+        }
     }
 
     return notifications;
@@ -858,8 +759,15 @@ export const RentalModel = {
     const db = await getDatabase();
     const query: any = {};
     if (month && year) {
-        const monthStr = month.padStart(2, '0');
-        query.start_date = { $regex: `^${year}-${monthStr}` };
+        const startStr = `${year}-${month.padStart(2, '0')}-01T00:00`; 
+        const startUTC = toUTCISO(startStr);
+        let nextMonth = parseInt(month) + 1;
+        let nextYear = parseInt(year);
+        if (nextMonth > 12) { nextMonth = 1; nextYear++; }
+        const endStr = `${nextYear}-${nextMonth.toString().padStart(2, '0')}-01T00:00`;
+        const endUTC = toUTCISO(endStr);
+        
+        query.start_date = { $gte: startUTC, $lt: endUTC };
     }
     const result = await db.collection('rentals').aggregate([
       { $match: query },  
@@ -870,13 +778,20 @@ export const RentalModel = {
 };
 
 export const ExpenseModel = {
+  // ... (Update ExpenseModel similarly if expenses have dates, yes they do 'expense_date') ...
   async getAll(month?: string, year?: string) {
     const db = await getDatabase();
-    
     const query: any = {};
     if (month && year) {
-        const monthStr = month.padStart(2, '0');
-        query.expense_date = { $regex: `^${year}-${monthStr}` };
+        const startStr = `${year}-${month.padStart(2, '0')}-01T00:00`; 
+        const startUTC = toUTCISO(startStr);
+        let nextMonth = parseInt(month) + 1;
+        let nextYear = parseInt(year);
+        if (nextMonth > 12) { nextMonth = 1; nextYear++; }
+        const endStr = `${nextYear}-${nextMonth.toString().padStart(2, '0')}-01T00:00`;
+        const endUTC = toUTCISO(endStr);
+
+        query.expense_date = { $gte: startUTC, $lt: endUTC };
     }
 
     const expenses = await db.collection('expenses').aggregate([
@@ -890,10 +805,7 @@ export const ExpenseModel = {
         },
       },
       {
-        $unwind: {
-          path: '$car',
-          preserveNullAndEmptyArrays: true,
-        },
+         $unwind: { path: '$car', preserveNullAndEmptyArrays: true }
       },
       {
         $project: {
@@ -917,8 +829,15 @@ export const ExpenseModel = {
       const db = await getDatabase();
       const query: any = {};
       if (month && year) {
-          const monthStr = month.padStart(2, '0');
-          query.expense_date = { $regex: `^${year}-${monthStr}` };
+          const startStr = `${year}-${month.padStart(2, '0')}-01T00:00`; 
+          const startUTC = toUTCISO(startStr);
+          let nextMonth = parseInt(month) + 1;
+          let nextYear = parseInt(year);
+          if (nextMonth > 12) { nextMonth = 1; nextYear++; }
+          const endStr = `${nextYear}-${nextMonth.toString().padStart(2, '0')}-01T00:00`;
+          const endUTC = toUTCISO(endStr);
+
+          query.expense_date = { $gte: startUTC, $lt: endUTC };
       }
       const result = await db.collection('expenses').aggregate([
           { $match: query },
@@ -935,10 +854,13 @@ export const ExpenseModel = {
     description?: string | null
   ) {
     const db = await getDatabase();
+    // Normalize date
+    const dateUTC = toUTCISO(expense_date);
+
     return db.collection('expenses').insertOne({
       category,
       amount,
-      expense_date,
+      expense_date: dateUTC,
       car_id: car_id ? new ObjectId(car_id) : null,
       description: description || null,
       created_at: new Date(),
@@ -954,13 +876,16 @@ export const ExpenseModel = {
     description?: string | null
   ) {
     const db = await getDatabase();
+    // Normalize date
+    const dateUTC = toUTCISO(expense_date);
+
     return db.collection('expenses').updateOne(
       { _id: new ObjectId(id) },
       {
         $set: {
           category,
           amount,
-          expense_date,
+          expense_date: dateUTC,
           car_id: car_id ? new ObjectId(car_id) : null,
           description: description || null,
         },
@@ -972,6 +897,6 @@ export const ExpenseModel = {
     const db = await getDatabase();
     return db.collection('expenses').deleteOne({ _id: new ObjectId(id) });
   },
-
-
 };
+
+

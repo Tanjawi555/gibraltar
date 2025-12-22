@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import AppLayout from '@/components/AppLayout';
+import { toBusinessInputString, formatInBusinessTime } from '@/lib/timezone';
 import { getTranslations, isRTL, Language, Translations } from '@/lib/translations';
 
 interface Car {
@@ -45,13 +46,14 @@ export default function CarsPage() {
     return_date: '',
     rental_price: ''
   });
-
-  // Pagination and Search states
+  
+  // ... (pagination states same) ...
   const [page, setPage] = useState(1);
   const [total, setTotal] = useState(0);
   const [search, setSearch] = useState('');
   const limit = 20;
 
+  // ... (useEffect hooks same) ...
   useEffect(() => {
     const savedLang = localStorage.getItem('lang') as Language;
     if (savedLang && ['ar', 'en', 'fr'].includes(savedLang)) {
@@ -181,8 +183,8 @@ export default function CarsPage() {
     setReservationData({
         car_id: car._id,
         client_id: '',
-        start_date: new Date().toISOString().slice(0, 16),
-        return_date: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString().slice(0, 16),
+        start_date: toBusinessInputString(new Date()),
+        return_date: toBusinessInputString(new Date(Date.now() + 24 * 60 * 60 * 1000)),
         rental_price: ''
     });
     setShowReservationModal(true);
@@ -219,16 +221,7 @@ export default function CarsPage() {
   };
 
   const formatDate = (dateString?: string) => {
-    if (!dateString) return '';
-    const date = new Date(dateString);
-    if (isNaN(date.getTime())) return dateString;
-    return new Intl.DateTimeFormat('en-GB', {
-      day: 'numeric',
-      month: 'short',
-      hour: 'numeric',
-      minute: 'numeric',
-      hour12: true
-    }).format(date);
+    return formatInBusinessTime(dateString);
   };
 
   const formatTotalDuration = (ms: number) => {

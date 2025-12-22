@@ -5,6 +5,7 @@ import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import AppLayout from '@/components/AppLayout';
 import { getTranslations, isRTL, Language, Translations } from '@/lib/translations';
+import { toBusinessInputString, formatInBusinessTime } from '@/lib/timezone';
 
 interface Car {
   _id: string;
@@ -40,13 +41,16 @@ export default function RentalsPage() {
   const [clients, setClients] = useState<Client[]>([]);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
+  
+  // Initialize with Business Time defaults
   const [formData, setFormData] = useState({
     car_id: '',
     client_id: '',
-    start_date: new Date().toISOString().slice(0, 16), // YYYY-MM-DDTHH:mm
-    return_date: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString().slice(0, 16),
+    start_date: toBusinessInputString(new Date()), 
+    return_date: toBusinessInputString(new Date(Date.now() + 24 * 60 * 60 * 1000)),
     rental_price: '',
   });
+  
   const [editingRental, setEditingRental] = useState<Rental | null>(null);
   const [message, setMessage] = useState<{ type: string; text: string } | null>(null);
 
@@ -56,9 +60,8 @@ export default function RentalsPage() {
   const [search, setSearch] = useState('');
   const limit = 20;
   
-  // Date Filter
+  // Date Filter (Year-Month)
   const [filterDate, setFilterDate] = useState(new Date().toISOString().slice(0, 7)); // YYYY-MM
-
 
   useEffect(() => {
     const savedLang = localStorage.getItem('lang') as Language;
@@ -159,11 +162,13 @@ export default function RentalsPage() {
       showMessage_('success', t.success);
       setShowModal(false);
       setEditingRental(null);
+      
+      // Reset to current Business Time
       setFormData({
         car_id: '',
         client_id: '',
-        start_date: new Date().toISOString().slice(0, 16),
-        return_date: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString().slice(0, 16),
+        start_date: toBusinessInputString(new Date()),
+        return_date: toBusinessInputString(new Date(Date.now() + 24 * 60 * 60 * 1000)),
         rental_price: '',
       });
       fetchData();
@@ -201,24 +206,15 @@ export default function RentalsPage() {
     setFormData({
       car_id: rental.car_id, 
       client_id: rental.client_id,
-      start_date: rental.start_date,
-      return_date: rental.return_date,
+      start_date: toBusinessInputString(rental.start_date), // Convert UTC to Business Time
+      return_date: toBusinessInputString(rental.return_date),
       rental_price: rental.rental_price.toString(),
     });
     setShowModal(true);
   };
 
   const formatDate = (dateString?: string) => {
-    if (!dateString) return '';
-    const date = new Date(dateString);
-    if (isNaN(date.getTime())) return dateString;
-    return new Intl.DateTimeFormat('en-GB', {
-      day: 'numeric',
-      month: 'short',
-      hour: 'numeric',
-      minute: 'numeric',
-      hour12: true
-    }).format(date);
+    return formatInBusinessTime(dateString);
   };
 
   if (status === 'loading') {
@@ -567,8 +563,8 @@ export default function RentalsPage() {
             setFormData({
               car_id: '',
               client_id: '',
-              start_date: new Date().toISOString().slice(0, 16),
-              return_date: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString().slice(0, 16),
+              start_date: toBusinessInputString(new Date()),
+              return_date: toBusinessInputString(new Date(Date.now() + 24 * 60 * 60 * 1000)),
               rental_price: '',
             });
             setShowModal(true);

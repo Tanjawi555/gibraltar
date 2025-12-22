@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { useSession } from 'next-auth/react';
 import { useRouter, useParams } from 'next/navigation';
 import { getTranslations, isRTL, Language, Translations } from '@/lib/translations';
+import { toBusinessInputString } from '@/lib/timezone';
 
 export default function ContractPage() {
   const { data: session, status } = useSession();
@@ -23,9 +24,9 @@ export default function ContractPage() {
     delivery_place: 'Tanger',
     return_place: 'Tanger',
 
-    // Dates
-    start_date: new Date(),
-    return_date: new Date(),
+    // Dates (Stored as Business Time Strings: YYYY-MM-DDTHH:mm)
+    start_date: toBusinessInputString(new Date()),
+    return_date: toBusinessInputString(new Date()),
     days: '',
 
     // Client (Locataire)
@@ -76,9 +77,14 @@ export default function ContractPage() {
       if (res.ok) {
         const data = await res.json();
         
-        const startDate = new Date(data.start_date);
-        const endDate = new Date(data.return_date);
-        const diffTime = Math.abs(endDate.getTime() - startDate.getTime());
+        // Convert UTC to Business Time Strings
+        const startStr = toBusinessInputString(data.start_date);
+        const returnStr = toBusinessInputString(data.return_date);
+        
+        // Calculate days using the strings (interpreted as local to preserve duration)
+        const d1 = new Date(startStr);
+        const d2 = new Date(returnStr);
+        const diffTime = Math.abs(d2.getTime() - d1.getTime());
         const days = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) || 1;
         
         setContractData(prev => ({
@@ -89,8 +95,8 @@ export default function ContractPage() {
             client_name: data.client_name || '',
             cin: data.passport_id || '', 
             phone: data.client_phone || '',
-            start_date: startDate,
-            return_date: endDate,
+            start_date: startStr,
+            return_date: returnStr,
             days: days.toString(),
             total: data.rental_price ? data.rental_price.toFixed(2) : '',
             remaining: data.rental_price ? data.rental_price.toFixed(2) : '',
@@ -108,19 +114,19 @@ export default function ContractPage() {
     window.print();
   };
 
-  // Helper for date parts
-  const formatDatePart = (date: any, part: 'day' | 'month' | 'year' | 'year_short' | 'hour' | 'minute') => {
-    if (!date) return '';
-    const d = new Date(date);
-    if (isNaN(d.getTime())) return '';
+  // Helper for date parts (Using String Parsing for consistency)
+  const formatDatePart = (dateStr: string | Date, part: 'day' | 'month' | 'year' | 'year_short' | 'hour' | 'minute') => {
+    if (!dateStr) return '';
+    const str = typeof dateStr === 'string' ? dateStr : toBusinessInputString(dateStr);
+    // Format: YYYY-MM-DDTHH:mm
     
     switch (part) {
-      case 'day': return d.getDate().toString().padStart(2, '0');
-      case 'month': return (d.getMonth() + 1).toString().padStart(2, '0');
-      case 'year': return d.getFullYear().toString(); // Full year
-      case 'year_short': return d.getFullYear().toString().slice(-2);
-      case 'hour': return d.getHours().toString().padStart(2, '0');
-      case 'minute': return d.getMinutes().toString().padStart(2, '0');
+      case 'day': return str.slice(8, 10);
+      case 'month': return str.slice(5, 7);
+      case 'year': return str.slice(0, 4); 
+      case 'year_short': return str.slice(2, 4);
+      case 'hour': return str.slice(11, 13);
+      case 'minute': return str.slice(14, 16);
       default: return '';
     }
   };
@@ -300,14 +306,39 @@ export default function ContractPage() {
                       {/* Helper to update date parts */}
                       {(() => {
                            const updateDate = (field: 'start_date' | 'return_date', part: 'day'|'month'|'year'|'hour'|'minute', val: string) => {
-                               const date = new Date(contractData[field]);
-                               const v = parseInt(val) || 0;
-                               if (part === 'day') date.setDate(v);
-                               if (part === 'month') date.setMonth(v - 1);
-                               if (part === 'year') date.setFullYear(2000 + v); // Assuming short year input
-                               if (part === 'hour') date.setHours(v);
-                               if (part === 'minute') date.setMinutes(v);
-                               setContractData({...contractData, [field]: date});
+                               let v = parseInt(val);
+                               if (isNaN(v)) v = 0;
+                               
+                               // Get current string
+                               let s = contractData[field] as string;
+                               if (typeof s !== 'string') s = toBusinessInputString(s as any);
+                               
+                               // Parse parts correctly from YYYY-MM-DDTHH:mm
+                               let year = parseInt(s.slice(0, 4));
+                               let month = parseInt(s.slice(5, 7));
+                               let day = parseInt(s.slice(8, 10));
+                               let hour = parseInt(s.slice(11, 13));
+                               let minute = parseInt(s.slice(14, 16));
+
+                               if (part === 'day') day = v;
+                               if (part === 'month') month = v;
+                               if (part === 'year') year = 2000 + v; // Input is YY
+                               if (part === 'hour') hour = v;
+                               if (part === 'minute') minute = v;
+
+                               // Simple overflow handling using Date (Local)
+                               // Create date from parts (Month is 0-indexed in Date constructor)
+                               const d = new Date(year, month - 1, day, hour, minute);
+                               
+                               // Format back to YYYY-MM-DDTHH:mm manually to avoid timezone issues
+                               const ny = d.getFullYear();
+                               const nm = (d.getMonth() + 1).toString().padStart(2, '0');
+                               const nd = d.getDate().toString().padStart(2, '0');
+                               const nh = d.getHours().toString().padStart(2, '0');
+                               const nmin = d.getMinutes().toString().padStart(2, '0');
+                               
+                               const newStr = `${ny}-${nm}-${nd}T${nh}:${nmin}`;
+                               setContractData({...contractData, [field]: newStr});
                            };
 
                            return [

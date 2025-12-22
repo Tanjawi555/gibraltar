@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import AppLayout from '@/components/AppLayout';
+import { toBusinessInputString, formatInBusinessTime } from '@/lib/timezone';
 import { getTranslations, isRTL, Language, Translations } from '@/lib/translations';
 
 interface Car {
@@ -35,7 +36,7 @@ export default function ExpensesPage() {
   const [formData, setFormData] = useState({
     category: 'maintenance',
     amount: '',
-    expense_date: new Date().toISOString().split('T')[0],
+    expense_date: toBusinessInputString(new Date()).split('T')[0],
     car_id: '',
     description: '',
   });
@@ -117,7 +118,7 @@ export default function ExpensesPage() {
       setFormData({
         category: 'maintenance',
         amount: '',
-        expense_date: new Date().toISOString().split('T')[0],
+        expense_date: toBusinessInputString(new Date()).split('T')[0],
         car_id: '',
         description: '',
       });
@@ -223,7 +224,7 @@ export default function ExpensesPage() {
             setFormData({
               category: 'maintenance',
               amount: '',
-              expense_date: new Date().toISOString().split('T')[0],
+              expense_date: toBusinessInputString(new Date()).split('T')[0],
               car_id: '',
               description: '',
             });
@@ -278,8 +279,8 @@ export default function ExpensesPage() {
                         <td className="fw-bold text-danger">-{expense.amount.toFixed(2)}</td>
                         <td>
                            <div className="d-flex align-items-center text-muted">
-                                <i className="bi bi-calendar-event me-2 text-primary opacity-50"></i>
-                                {expense.expense_date}
+                                 <i className="bi bi-calendar-event me-2 text-primary opacity-50"></i>
+                                {formatInBusinessTime(expense.expense_date, 'dd MMM yyyy')}
                              </div>
                         </td>
                         <td>
