@@ -120,37 +120,9 @@ export const CarModel = {
                   ]
                 }
               }
-            },
-            {
-               $addFields: {
-                   // Calculate duration in milliseconds, convert to days.
-                   // Ensure dates are parsed as dates. If stored as strings, we need to convert.
-                   // Assuming ISO strings YYYY-MM-DDTHH:mm...
-                   // Use $toDate to convert string dates to Date objects
-                    cols_start: { $toDate: "$start_date"},
-                    cols_end: { $toDate: "$return_date"}
-               }
-            },
-            {
-                $project: {
-                    duration_days: {
-                        $ceil: {
-                            $divide: [
-                                { $subtract: ["$cols_end", "$cols_start"] },
-                                1000 * 60 * 60 * 24
-                            ]
-                        }
-                    },
-                    status: 1
-                }
             }
           ],
           as: 'rental_history'
-        }
-      },
-      {
-        $addFields: {
-          total_days_rented: { $sum: "$rental_history.duration_days" }
         }
       },
       {
@@ -181,8 +153,12 @@ export const CarModel = {
       },
       {
         $project: {
-          active_rentals: 0,
-          rental_history: 0 
+            model: 1,
+            plate_number: 1,
+            status: 1,
+            created_at: 1,
+            rental_history: 1, // Keep it to calc in JS
+            current_rental: 1
         }
       },
       { $sort: { created_at: -1 } },
@@ -190,7 +166,31 @@ export const CarModel = {
       { $limit: limit }
     ]).toArray();
 
-    return { cars, total, page, limit };
+    // Calculate total rented ms in JS
+    const processedCars = cars.map((car: any) => {
+        let total_rented_ms = 0;
+        if (car.rental_history && Array.isArray(car.rental_history)) {
+            car.rental_history.forEach((rental: any) => {
+                const start = new Date(rental.start_date).getTime();
+                const end = new Date(rental.return_date).getTime();
+                
+                if (!isNaN(start) && !isNaN(end) && end > start) {
+                    total_rented_ms += (end - start);
+                }
+            });
+        }
+
+        // Remove history based on original projection goals (optional, but cleaner)
+        delete car.rental_history;
+        delete car.active_rentals;
+        
+        return {
+            ...car,
+            total_rented_ms
+        };
+    });
+
+    return { cars: processedCars, total, page, limit };
   },
 
   async getById(id: string) {
@@ -324,9 +324,20 @@ export const ClientModel = {
 };
 
 export const RentalModel = {
-  async getAll() {
+  async getAll(month?: string, year?: string) {
     const db = await getDatabase();
+    
+    const query: any = {};
+    if (month && year) {
+        // Construct query for specific month/year based on start_date
+        // start_date format is ISO string "2024-05-20T..."
+        // Regex: ^YYYY-MM
+        const monthStr = month.padStart(2, '0');
+        query.start_date = { $regex: `^${year}-${monthStr}` };
+    }
+
     const rentals = await db.collection('rentals').aggregate([
+      { $match: query },
       {
         $lookup: {
           from: 'cars',
@@ -412,7 +423,7 @@ export const RentalModel = {
     return rentals[0] || null;
   },
 
-  async getPaginated(page: number, limit: number, search: string) {
+  async getPaginated(page: number, limit: number, search: string, month?: string, year?: string) {
     const db = await getDatabase();
     const skip = (page - 1) * limit;
 
@@ -451,6 +462,18 @@ export const RentalModel = {
         },
       }
     ];
+    
+    // Add Match stage BEFORE or AFTER lookup? 
+    // Ideally before to limit lookups, but start_date is in 'rentals' collection so we can put it first.
+    // BUT we used pipeline which puts lookup first. We can add a match at the start of pipeline if we want query optimization,
+    // or just add it to the search match.
+    // Let's add a match stage for date filtering at the VERY BEGINNING of the pipeline
+    if (month && year) {
+        const monthStr = month.padStart(2, '0');
+        pipeline.unshift({
+            $match: { start_date: { $regex: `^${year}-${monthStr}` } }
+        });
+    }
 
     if (search) {
       pipeline.push({
@@ -559,6 +582,89 @@ export const RentalModel = {
         { _id: rental.car_id },
         { $set: { status: carStatus } }
       );
+    }
+  },
+
+  async checkExpiredRentals() {
+    const db = await getDatabase();
+    // Use current local time or ISO. Since stored dates are ISO string "YYYY-MM-DDTHH:mm", simple string comparison works.
+    // However, we want to be precise. 
+    // We assume the system is running in the correct timezone or the user inputs local time.
+    // For now, we compare against ISO string of now.
+    // Ideally we should handle timezone offset if user is in a specific zone, but without timezone config, UTC/ISO is best bet.
+    // Wait, the user inputs "YYYY-MM-DDTHH:mm" from <input type="datetime-local">. This value is usually "local" time without timezone info.
+    // If we compare it to new Date().toISOString() (which is UTC), we might be off by hours.
+    // But since this runs on server, new Date() is server time.
+    // Ideally we'd use a library like date-fns-tz but let's stick to simple string comparison.
+    // To match "datetime-local" format (no Z):
+    // To ensure consistency on Live servers (which usually look at UTC), we FORCE the check to use Morocco Time (Africa/Casablanca).
+    // This way, regardless of where the server is hosted, it compares against the correct wall-clock time in Morocco.
+    
+    const getEnvironmentTimeISO = () => {
+        // Detect environment
+        const isDevelopment = process.env.NODE_ENV === 'development';
+
+        if (isDevelopment) {
+             // Local Development: Use the computer's local time
+             const d = new Date();
+             const pad = (n: number) => n < 10 ? '0' + n : n;
+             return d.getFullYear() + '-' + 
+               pad(d.getMonth() + 1) + '-' + 
+               pad(d.getDate()) + 'T' + 
+               pad(d.getHours()) + ':' + 
+               pad(d.getMinutes());
+        } else {
+             // Live/Production: Strictly use Morocco Time
+             const options: Intl.DateTimeFormatOptions = {
+                timeZone: 'Africa/Casablanca',
+                year: 'numeric',
+                month: '2-digit',
+                day: '2-digit',
+                hour: '2-digit',
+                minute: '2-digit',
+                hour12: false
+            };
+            
+            const formatter = new Intl.DateTimeFormat('en-CA', { 
+                ...options, 
+                year: 'numeric', month: '2-digit', day: '2-digit'
+            });
+            const timeFormatter = new Intl.DateTimeFormat('en-GB', { 
+                ...options,
+                hour: '2-digit', minute: '2-digit'
+            });
+
+            const dateStr = formatter.format(new Date()); 
+            const timeStr = timeFormatter.format(new Date());
+
+            return `${dateStr}T${timeStr}`;
+        }
+    };
+    
+    const nowStr = getEnvironmentTimeISO();
+
+    // 1. Find expired rentals OR reservations (rented/reserved -> returned)
+    // "status" in ['rented', 'reserved'] AND return_date < now
+    const expiredRentals = await db.collection('rentals').find({
+        status: { $in: ['rented', 'reserved'] },
+        return_date: { $lt: nowStr }
+    }).toArray();
+
+    if (expiredRentals.length > 0) {
+        const rentalIds = expiredRentals.map(r => r._id);
+        const carIds = expiredRentals.map(r => r.car_id);
+
+        // Mark rentals/reservations as returned
+        await db.collection('rentals').updateMany(
+            { _id: { $in: rentalIds } },
+            { $set: { status: 'returned' } }
+        );
+
+        // Mark cars as available
+        await db.collection('cars').updateMany(
+            { _id: { $in: carIds } },
+            { $set: { status: 'available' } }
+        );
     }
   },
 
@@ -746,9 +852,15 @@ export const RentalModel = {
     return notifications;
   },
 
-  async getTotalRevenue() {
+  async getTotalRevenue(month?: string, year?: string) {
     const db = await getDatabase();
+    const query: any = {};
+    if (month && year) {
+        const monthStr = month.padStart(2, '0');
+        query.start_date = { $regex: `^${year}-${monthStr}` };
+    }
     const result = await db.collection('rentals').aggregate([
+      { $match: query },  
       { $group: { _id: null, total: { $sum: '$rental_price' } } },
     ]).toArray();
     return result[0]?.total || 0;
@@ -756,9 +868,17 @@ export const RentalModel = {
 };
 
 export const ExpenseModel = {
-  async getAll() {
+  async getAll(month?: string, year?: string) {
     const db = await getDatabase();
+    
+    const query: any = {};
+    if (month && year) {
+        const monthStr = month.padStart(2, '0');
+        query.expense_date = { $regex: `^${year}-${monthStr}` };
+    }
+
     const expenses = await db.collection('expenses').aggregate([
+      { $match: query },
       {
         $lookup: {
           from: 'cars',
@@ -789,6 +909,20 @@ export const ExpenseModel = {
       { $sort: { expense_date: -1 } },
     ]).toArray();
     return expenses;
+  },
+
+  async getTotal(month?: string, year?: string) {
+      const db = await getDatabase();
+      const query: any = {};
+      if (month && year) {
+          const monthStr = month.padStart(2, '0');
+          query.expense_date = { $regex: `^${year}-${monthStr}` };
+      }
+      const result = await db.collection('expenses').aggregate([
+          { $match: query },
+          { $group: { _id: null, total: { $sum: '$amount' } } }
+      ]).toArray();
+      return result[0]?.total || 0;
   },
 
   async create(
@@ -837,11 +971,5 @@ export const ExpenseModel = {
     return db.collection('expenses').deleteOne({ _id: new ObjectId(id) });
   },
 
-  async getTotal() {
-    const db = await getDatabase();
-    const result = await db.collection('expenses').aggregate([
-      { $group: { _id: null, total: { $sum: '$amount' } } },
-    ]).toArray();
-    return result[0]?.total || 0;
-  },
+
 };

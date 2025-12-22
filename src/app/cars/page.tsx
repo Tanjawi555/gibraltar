@@ -17,6 +17,11 @@ interface Car {
   };
 }
 
+interface Client {
+  _id: string;
+  full_name: string;
+}
+
 export default function CarsPage() {
   const { data: session, status } = useSession();
   const router = useRouter();
@@ -28,6 +33,17 @@ export default function CarsPage() {
   const [editingCar, setEditingCar] = useState<Car | null>(null);
   const [formData, setFormData] = useState({ model: '', plate_number: '' });
   const [message, setMessage] = useState<{ type: string; text: string } | null>(null);
+
+  // Reservation Modal State
+  const [showReservationModal, setShowReservationModal] = useState(false);
+  const [clients, setClients] = useState<Client[]>([]);
+  const [reservationData, setReservationData] = useState({
+    car_id: '',
+    client_id: '',
+    start_date: '',
+    return_date: '',
+    rental_price: ''
+  });
 
   // Pagination and Search states
   const [page, setPage] = useState(1);
@@ -74,6 +90,25 @@ export default function CarsPage() {
       setLoading(false);
     }
   };
+
+  const fetchClients = async () => {
+      try {
+          const res = await fetch('/api/clients?limit=100'); // Fetch enough consumers
+          if(res.ok) {
+              const data = await res.json();
+              if(data.clients) setClients(data.clients);
+              else if(Array.isArray(data)) setClients(data);
+          }
+      } catch(e) {
+          console.error("Failed to fetch clients", e);
+      }
+  };
+
+  useEffect(() => {
+    if (showReservationModal && clients.length === 0) {
+        fetchClients();
+    }
+  }, [showReservationModal]);
 
   const handleLanguageChange = (newLang: Language) => {
     setLang(newLang);
@@ -140,6 +175,41 @@ export default function CarsPage() {
     }
   };
 
+  const openReservationModal = (car: Car) => {
+    setReservationData({
+        car_id: car._id,
+        client_id: '',
+        start_date: new Date().toISOString().slice(0, 16),
+        return_date: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString().slice(0, 16),
+        rental_price: ''
+    });
+    setShowReservationModal(true);
+  };
+
+  const handleReservationSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+        const res = await fetch('/api/rentals', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                ...reservationData,
+                status: 'reserved'
+            })
+        });
+
+        if(res.ok) {
+            showMessage_('success', t.success || 'Reserved successfully');
+            setShowReservationModal(false);
+            fetchCars();
+        } else {
+            showMessage_('danger', t.error || 'Failed to reserve');
+        }
+    } catch (error) {
+        showMessage_('danger', t.error || 'Failed to reserve');
+    }
+  };
+
   const openEditModal = (car: Car) => {
     setEditingCar(car);
     setFormData({ model: car.model, plate_number: car.plate_number });
@@ -157,6 +227,27 @@ export default function CarsPage() {
       minute: 'numeric',
       hour12: true
     }).format(date);
+  };
+
+  const formatTotalDuration = (ms: number) => {
+      if (!ms) return '';
+      const diffTime = Math.abs(ms);
+      
+      // Less than an hour
+      if (diffTime < 1000 * 60 * 60) {
+          const minutes = Math.ceil(diffTime / (1000 * 60));
+          return `${minutes} Mins`;
+      }
+      // Less than a day
+      if (diffTime < 1000 * 60 * 60 * 24) {
+          const hours = Math.floor(diffTime / (1000 * 60 * 60));
+          const minutes = Math.ceil((diffTime % (1000 * 60 * 60)) / (1000 * 60));
+          if (minutes === 0) return `${hours} Hours`;
+          return `${hours}h ${minutes}m`;
+      }
+      
+      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)); 
+      return `${diffDays} Days`;
   };
 
   if (status === 'loading') {
@@ -253,10 +344,10 @@ export default function CarsPage() {
                             <span className="font-monospace bg-light px-2 py-1 rounded text-secondary border">
                                 {car.plate_number}
                             </span>
-                            {(car as any).total_days_rented > 0 && (
-                              <small className="text-muted mt-1 align-items-center d-flex" title={t.total_rentals || 'Total Rented Days'}>
+                            {(car as any).total_rented_ms > 0 && (
+                              <small className="text-muted mt-1 align-items-center d-flex" title={t.total_rentals || 'Total Rented Duration'}>
                                   <i className="bi bi-clock-history me-1 text-primary"></i> 
-                                  {(car as any).total_days_rented} {t.rental_duration?.split(' ')[1]?.replace(')', '').replace('(', '') || 'Days'}
+                                  {formatTotalDuration((car as any).total_rented_ms)}
                               </small>
                             )}
                           </div>
@@ -294,7 +385,7 @@ export default function CarsPage() {
                           <div className="btn-group gap-2"> {/* Added gap for spacing */}
                             {/* Action Buttons styled like Image 2 */}
                             {car.status !== 'reserved' && (
-                                <button onClick={() => handleStatusChange(car._id, 'reserved')} className="btn btn-sm btn-light text-warning rounded-circle d-flex align-items-center justify-content-center" style={{width: '32px', height: '32px'}} title={t.reserved}>
+                                <button onClick={() => openReservationModal(car)} className="btn btn-sm btn-light text-warning rounded-circle d-flex align-items-center justify-content-center" style={{width: '32px', height: '32px'}} title={t.reserved}>
                                     <i className="bi bi-clock-fill fs-6"></i>
                                 </button>
                             )}
@@ -381,6 +472,52 @@ export default function CarsPage() {
               </div>
             </div>
           </div>
+        )}
+
+        {showReservationModal && (
+            <div className="modal fade show d-block" style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}>
+                <div className="modal-dialog">
+                    <div className="modal-content">
+                        <form onSubmit={handleReservationSubmit}>
+                            <div className="modal-header">
+                                <h5 className="modal-title">{t.reserved || 'Reserve Car'}</h5>
+                                <button type="button" className="btn-close" onClick={() => setShowReservationModal(false)} />
+                            </div>
+                            <div className="modal-body">
+                                <div className="mb-3">
+                                    <label className="form-label">{t.select_client || 'Client'}</label>
+                                    <select className="form-select" value={reservationData.client_id} onChange={(e) => setReservationData({ ...reservationData, client_id: e.target.value })} required>
+                                        <option value="">-- Select Client --</option>
+                                        {clients.map(client => (
+                                            <option key={client._id} value={client._id}>{client.full_name}</option>
+                                        ))}
+                                    </select>
+                                    {clients.length === 0 && <small className="text-muted">No clients found. Add a client first.</small>}
+                                </div>
+                                <div className="mb-3">
+                                    <label className="form-label">{t.start_date || 'Start Date'}</label>
+                                    <input type="datetime-local" className="form-control" value={reservationData.start_date} onChange={(e) => setReservationData({ ...reservationData, start_date: e.target.value })} required />
+                                </div>
+                                <div className="mb-3">
+                                    <label className="form-label">{t.return_date || 'Return Date'}</label>
+                                    <input type="datetime-local" className="form-control" value={reservationData.return_date} onChange={(e) => setReservationData({ ...reservationData, return_date: e.target.value })} required />
+                                </div>
+                                <div className="mb-3">
+                                    <label className="form-label">{t.rental_price || 'Price'}</label>
+                                    <div className="input-group">
+                                        <input type="number" className="form-control" value={reservationData.rental_price} onChange={(e) => setReservationData({ ...reservationData, rental_price: e.target.value })} required />
+                                        <span className="input-group-text">DH</span>
+                                    </div>
+                                </div>
+                            </div>
+                            <div className="modal-footer">
+                                <button type="button" className="btn btn-secondary" onClick={() => setShowReservationModal(false)}>{t.cancel}</button>
+                                <button type="submit" className="btn btn-primary">{t.save}</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
         )}
 
         {/* Floating Action Button for Adding Car */}

@@ -15,6 +15,7 @@ export async function GET(request: NextRequest) {
   const search = searchParams.get('search') || '';
 
   const result = await CarModel.getPaginated(page, limit, search);
+
   return NextResponse.json(result);
 }
 

@@ -1,9 +1,11 @@
+
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { RentalModel, CarModel, ClientModel } from '@/lib/models';
 
 export async function GET(request: NextRequest) {
+  await RentalModel.checkExpiredRentals();
   const session = await getServerSession(authOptions);
   if (!session) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -23,9 +25,11 @@ export async function GET(request: NextRequest) {
   const page = parseInt(searchParams.get('page') || '1');
   const limit = parseInt(searchParams.get('limit') || '20');
   const search = searchParams.get('search') || '';
+  const month = searchParams.get('month') || undefined;
+  const year = searchParams.get('year') || undefined;
 
   const [paginatedData, cars, clients] = await Promise.all([
-    RentalModel.getPaginated(page, limit, search),
+    RentalModel.getPaginated(page, limit, search, month, year),
     CarModel.getAll(),
     ClientModel.getAll()
   ]);

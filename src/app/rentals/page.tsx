@@ -55,6 +55,10 @@ export default function RentalsPage() {
   const [total, setTotal] = useState(0);
   const [search, setSearch] = useState('');
   const limit = 20;
+  
+  // Date Filter
+  const [filterDate, setFilterDate] = useState(new Date().toISOString().slice(0, 7)); // YYYY-MM
+
 
   useEffect(() => {
     const savedLang = localStorage.getItem('lang') as Language;
@@ -78,11 +82,12 @@ export default function RentalsPage() {
       }, 300);
       return () => clearTimeout(timer);
     }
-  }, [session, page, search]);
+  }, [session, page, search, filterDate]);
 
   const fetchData = async () => {
     try {
-      const res = await fetch(`/api/rentals?page=${page}&limit=${limit}&search=${encodeURIComponent(search)}`);
+      const [year, month] = filterDate.split('-');
+      const res = await fetch(`/api/rentals?page=${page}&limit=${limit}&search=${encodeURIComponent(search)}&month=${month}&year=${year}`);
       if (res.ok) {
         const data = await res.json();
         setRentals(data.rentals);
@@ -116,8 +121,22 @@ export default function RentalsPage() {
     const startDate = new Date(start);
     const endDate = new Date(end);
     const diffTime = Math.abs(endDate.getTime() - startDate.getTime());
+    
+    // Less than an hour
+    if (diffTime < 1000 * 60 * 60) {
+        const minutes = Math.ceil(diffTime / (1000 * 60));
+        return `${minutes} Mins`;
+    }
+    // Less than a day
+    if (diffTime < 1000 * 60 * 60 * 24) {
+        const hours = Math.floor(diffTime / (1000 * 60 * 60));
+        const minutes = Math.ceil((diffTime % (1000 * 60 * 60)) / (1000 * 60));
+        if (minutes === 0) return `${hours} Hours`;
+        return `${hours}h ${minutes}m`;
+    }
+    
     const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)); 
-    return diffDays || 1; // Minimum 1 day
+    return `${diffDays} Days`;
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -238,21 +257,38 @@ export default function RentalsPage() {
           </div>
         </div>
 
-         {/* Search Bar */}
-         <div className="card border-0 shadow-sm mb-4 animate-fade-in-up delay-1" style={{borderRadius: '1rem', overflow: 'hidden'}}>
-          <div className="card-body p-2">
-            <div className="input-group input-group-lg border-0">
-               <span className="input-group-text bg-transparent border-0 ps-3"><i className="bi bi-search text-muted"></i></span>
-              <input 
-                type="text" 
-                className="form-control border-0 shadow-none bg-transparent" 
-                placeholder={t.search_placeholder || "Search rentals..."} 
-                value={search} 
-                onChange={(e) => { setSearch(e.target.value); setPage(1); }} 
-              />
-            </div>
-          </div>
-        </div>
+         {/* Search Bar & Filter */}
+         <div className="row g-3 mb-4 animate-fade-in-up delay-1">
+             <div className="col-md-4">
+                <div className="card border-0 shadow-sm" style={{borderRadius: '1rem'}}>
+                    <div className="card-body p-2 d-flex align-items-center">
+                        <span className="ps-3 text-muted me-2"><i className="bi bi-calendar-month"></i></span>
+                        <input 
+                            type="month" 
+                            className="form-control border-0 shadow-none bg-transparent"
+                            value={filterDate}
+                            onChange={(e) => { setFilterDate(e.target.value); setPage(1); }}
+                        />
+                    </div>
+                </div>
+             </div>
+             <div className="col-md-8">
+                <div className="card border-0 shadow-sm" style={{borderRadius: '1rem', overflow: 'hidden'}}>
+                  <div className="card-body p-2">
+                    <div className="input-group input-group-lg border-0">
+                       <span className="input-group-text bg-transparent border-0 ps-3"><i className="bi bi-search text-muted"></i></span>
+                      <input 
+                        type="text" 
+                        className="form-control border-0 shadow-none bg-transparent" 
+                        placeholder={t.search_placeholder || "Search rentals..."} 
+                        value={search} 
+                        onChange={(e) => { setSearch(e.target.value); setPage(1); }} 
+                      />
+                    </div>
+                  </div>
+                </div>
+             </div>
+         </div>
 
         {/* Rentals List (Mobile Cards & Desktop Table) */}
         <div className="animate-fade-in-up delay-2">
@@ -302,8 +338,8 @@ export default function RentalsPage() {
                            </div>
                         </div>
                         <div className="text-end">
-                           <div className="fw-bold text-dark mb-1">{rental.rental_price.toFixed(2)} DZD</div>
-                           <span className="badge bg-light text-secondary border fw-normal">{calculateDuration(rental.start_date, rental.return_date)} Days</span>
+                           <div className="fw-bold text-dark mb-1">{rental.rental_price.toFixed(2)} DH</div>
+                           <span className="badge bg-light text-secondary border fw-normal">{calculateDuration(rental.start_date, rental.return_date)}</span>
                         </div>
                     </div>
 
@@ -508,7 +544,7 @@ export default function RentalsPage() {
                       <label className="form-label">{t.rental_price}</label>
                       <div className="input-group"> 
                         <input type="number" step="0.01" min="0" className="form-control" value={formData.rental_price} onChange={(e) => setFormData({ ...formData, rental_price: e.target.value })} required />
-                         <span className="input-group-text bg-light">DZD</span>
+                         <span className="input-group-text bg-light">DH</span>
                       </div>
                     </div>
                   </div>

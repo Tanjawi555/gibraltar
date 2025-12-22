@@ -3,13 +3,17 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { ExpenseModel, CarModel } from '@/lib/models';
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   const session = await getServerSession(authOptions);
   if (!session) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
-  const expenses = await ExpenseModel.getAll();
+  const { searchParams } = new URL(request.url);
+  const month = searchParams.get('month') || undefined;
+  const year = searchParams.get('year') || undefined;
+
+  const expenses = await ExpenseModel.getAll(month, year);
   const cars = await CarModel.getAll();
 
   return NextResponse.json({ expenses, cars });

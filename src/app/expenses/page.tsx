@@ -41,6 +41,9 @@ export default function ExpensesPage() {
   });
   const [editingExpense, setEditingExpense] = useState<Expense | null>(null);
   const [message, setMessage] = useState<{ type: string; text: string } | null>(null);
+  
+  // Date Filter
+  const [filterDate, setFilterDate] = useState(new Date().toISOString().slice(0, 7)); // YYYY-MM
 
   useEffect(() => {
     const savedLang = localStorage.getItem('lang') as Language;
@@ -59,11 +62,12 @@ export default function ExpensesPage() {
 
   useEffect(() => {
     if (session) fetchData();
-  }, [session]);
+  }, [session, filterDate]);
 
   const fetchData = async () => {
     try {
-      const res = await fetch('/api/expenses');
+      const [year, month] = filterDate.split('-');
+      const res = await fetch(`/api/expenses?month=${month}&year=${year}`);
       if (res.ok) {
         const data = await res.json();
         setExpenses(data.expenses);
@@ -212,7 +216,7 @@ export default function ExpensesPage() {
         <div className="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2 animate-fade-in-up">
           <div>
             <h2 className="fw-bold mb-1"><i className="bi bi-cash-stack text-primary me-2"></i>{t.expenses}</h2>
-            <p className="text-muted mb-0">{t.total_expenses}: {expenses.reduce((acc, curr) => acc + curr.amount, 0).toFixed(2)} DZD</p>
+            <p className="text-muted mb-0">{t.total_expenses}: {expenses.reduce((acc, curr) => acc + curr.amount, 0).toFixed(2)} DH</p>
           </div>
           <button className="btn btn-primary d-flex align-items-center shadow-sm" onClick={() => {
             setEditingExpense(null);
@@ -227,6 +231,21 @@ export default function ExpensesPage() {
           }}>
             <i className="bi bi-plus-lg me-2"></i> {t.add_expense}
           </button>
+        </div>
+        
+        {/* Month Filter */}
+        <div className="mb-4 animate-fade-in-up delay-1" style={{maxWidth: '300px'}}>
+            <div className="card border-0 shadow-sm" style={{borderRadius: '1rem'}}>
+                <div className="card-body p-2 d-flex align-items-center">
+                    <span className="ps-3 text-muted me-2"><i className="bi bi-calendar-month"></i></span>
+                    <input 
+                        type="month" 
+                        className="form-control border-0 shadow-none bg-transparent"
+                        value={filterDate}
+                        onChange={(e) => setFilterDate(e.target.value)}
+                    />
+                </div>
+            </div>
         </div>
 
         {/* Expenses Table */}
@@ -337,7 +356,7 @@ export default function ExpensesPage() {
                            <label className="form-label">{t.amount}</label>
                            <div className="input-group">
                               <input type="number" step="0.01" min="0" className="form-control" value={formData.amount} onChange={(e) => setFormData({ ...formData, amount: e.target.value })} required />
-                              <span className="input-group-text bg-light">DZD</span>
+                              <span className="input-group-text bg-light">DH</span>
                            </div>
                         </div>
                     </div>

@@ -31,6 +31,9 @@ export default function ProfitsPage() {
   const [t, setT] = useState<Translations>(getTranslations('ar'));
   const [data, setData] = useState<ProfitData | null>(null);
   const [loading, setLoading] = useState(true);
+  
+  // Date Filter
+  const [filterDate, setFilterDate] = useState(new Date().toISOString().slice(0, 7)); // YYYY-MM
 
   useEffect(() => {
     const savedLang = localStorage.getItem('lang') as Language;
@@ -49,11 +52,12 @@ export default function ProfitsPage() {
 
   useEffect(() => {
     if (session) fetchData();
-  }, [session]);
+  }, [session, filterDate]);
 
   const fetchData = async () => {
     try {
-      const res = await fetch('/api/profits');
+      const [year, month] = filterDate.split('-');
+      const res = await fetch(`/api/profits?month=${month}&year=${year}`);
       if (res.ok) {
         const result = await res.json();
         setData(result);
@@ -105,6 +109,21 @@ export default function ProfitsPage() {
            </div>
         </div>
 
+        {/* Month Filter */}
+        <div className="mb-4 animate-fade-in-up delay-1" style={{maxWidth: '300px'}}>
+            <div className="card border-0 shadow-sm" style={{borderRadius: '1rem'}}>
+                <div className="card-body p-2 d-flex align-items-center">
+                    <span className="ps-3 text-muted me-2"><i className="bi bi-calendar-month"></i></span>
+                    <input 
+                        type="month" 
+                        className="form-control border-0 shadow-none bg-transparent"
+                        value={filterDate}
+                        onChange={(e) => setFilterDate(e.target.value)}
+                    />
+                </div>
+            </div>
+        </div>
+
         {/* Summary Cards */}
         <div className="row g-4 mb-4 animate-fade-in-up delay-1">
           <div className="col-md-4">
@@ -112,7 +131,7 @@ export default function ProfitsPage() {
               <div className="card-body p-4 d-flex align-items-center justify-content-between">
                 <div>
                   <h6 className="text-uppercase mb-2 opacity-75 fw-bold" style={{fontSize: '0.8rem'}}>{t.revenue}</h6>
-                  <h3 className="mb-0 fw-bold display-6">{(data?.totalRevenue || 0).toFixed(2)} <span className="fs-6 opacity-75">DZD</span></h3>
+                  <h3 className="mb-0 fw-bold display-6">{(data?.totalRevenue || 0).toFixed(2)} <span className="fs-6 opacity-75">DH</span></h3>
                 </div>
                 <div className="rounded-circle bg-white bg-opacity-25 p-3 d-flex align-items-center justify-content-center" style={{width: '60px', height: '60px'}}>
                    <i className="bi bi-wallet2 fs-2 text-white"></i>
@@ -125,7 +144,7 @@ export default function ProfitsPage() {
               <div className="card-body p-4 d-flex align-items-center justify-content-between">
                 <div>
                    <h6 className="text-uppercase mb-2 opacity-75 fw-bold" style={{fontSize: '0.8rem'}}>{t.total_expenses}</h6>
-                   <h3 className="mb-0 fw-bold display-6">{(data?.totalExpenses || 0).toFixed(2)} <span className="fs-6 opacity-75">DZD</span></h3>
+                   <h3 className="mb-0 fw-bold display-6">{(data?.totalExpenses || 0).toFixed(2)} <span className="fs-6 opacity-75">DH</span></h3>
                 </div>
                  <div className="rounded-circle bg-white bg-opacity-25 p-3 d-flex align-items-center justify-content-center" style={{width: '60px', height: '60px'}}>
                    <i className="bi bi-cash-stack fs-2 text-white"></i>
@@ -143,7 +162,7 @@ export default function ProfitsPage() {
               <div className="card-body p-4 d-flex align-items-center justify-content-between">
                 <div>
                    <h6 className="text-uppercase mb-2 opacity-75 fw-bold" style={{fontSize: '0.8rem'}}>{t.net_profit}</h6>
-                   <h3 className="mb-0 fw-bold display-6">{(data?.totalProfit || 0).toFixed(2)} <span className="fs-6 opacity-75">DZD</span></h3>
+                   <h3 className="mb-0 fw-bold display-6">{(data?.totalProfit || 0).toFixed(2)} <span className="fs-6 opacity-75">DH</span></h3>
                 </div>
                  <div className="rounded-circle bg-white bg-opacity-25 p-3 d-flex align-items-center justify-content-center" style={{width: '60px', height: '60px'}}>
                    <i className="bi bi-graph-up-arrow fs-2 text-white"></i>
@@ -202,7 +221,7 @@ export default function ProfitsPage() {
                         <td className="d-none d-md-table-cell text-muted">{rental.start_date}</td>
                         <td className="d-none d-md-table-cell text-muted">{rental.return_date}</td>
                         <td className="fw-bold text-success">
-                          +{rental.rental_price.toFixed(2)} DZD
+                          +{rental.rental_price.toFixed(2)} DH
                         </td>
                         <td className="text-end pe-4">
                           {rental.status === 'reserved' && <span className="badge bg-warning bg-opacity-10 text-warning rounded-pill px-3 py-2">{t.reserved}</span>}
