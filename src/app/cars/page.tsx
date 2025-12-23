@@ -13,8 +13,11 @@ interface Car {
   plate_number: string;
   status: 'available' | 'rented' | 'reserved';
   current_rental?: {
+    _id: string;
+    client_id: string;
     start_date: string;
     return_date: string;
+    rental_price: number;
   };
 }
 
@@ -37,9 +40,10 @@ export default function CarsPage() {
 
   // Reservation Modal State
   const [showReservationModal, setShowReservationModal] = useState(false);
-  const [modalMode, setModalMode] = useState<'reserve' | 'rent'>('reserve');
+  const [modalMode, setModalMode] = useState<'reserve' | 'rent' | 'edit'>('reserve');
   const [clients, setClients] = useState<Client[]>([]);
   const [reservationData, setReservationData] = useState({
+    _id: '',
     car_id: '',
     client_id: '',
     start_date: '',
@@ -178,28 +182,57 @@ export default function CarsPage() {
     }
   };
 
-  const openReservationModal = (car: Car, mode: 'reserve' | 'rent' = 'reserve') => {
+  const openReservationModal = (car: Car, mode: 'reserve' | 'rent' | 'edit' = 'reserve') => {
     setModalMode(mode);
-    setReservationData({
-        car_id: car._id,
-        client_id: '',
-        start_date: toBusinessInputString(new Date()),
-        return_date: toBusinessInputString(new Date(Date.now() + 24 * 60 * 60 * 1000)),
-        rental_price: ''
-    });
+    
+    if (mode === 'edit' && car.current_rental) {
+        setReservationData({
+            _id: car.current_rental._id || '',
+            car_id: car._id,
+            client_id: car.current_rental.client_id || '',
+            start_date: toBusinessInputString(car.current_rental.start_date),
+            return_date: toBusinessInputString(car.current_rental.return_date),
+            rental_price: (car.current_rental as any).rental_price ? (car.current_rental as any).rental_price.toString() : ''
+        });
+    } else {
+        setReservationData({
+            _id: '',
+            car_id: car._id,
+            client_id: '',
+            start_date: toBusinessInputString(new Date()),
+            return_date: toBusinessInputString(new Date(Date.now() + 24 * 60 * 60 * 1000)),
+            rental_price: ''
+        });
+    }
     setShowReservationModal(true);
   };
 
   const handleReservationSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-        const res = await fetch('/api/rentals', {
-            method: 'POST',
+        let url = '/api/rentals';
+        let method = 'POST';
+        let body: any = {
+            ...reservationData,
+            status: modalMode === 'rent' ? 'rented' : 'reserved'
+        };
+
+        if (modalMode === 'edit' && reservationData._id) {
+            method = 'PUT';
+            body = {
+                id: reservationData._id,
+                car_id: reservationData.car_id,
+                client_id: reservationData.client_id,
+                start_date: reservationData.start_date,
+                return_date: reservationData.return_date,
+                rental_price: parseFloat(reservationData.rental_price)
+            };
+        }
+
+        const res = await fetch(url, {
+            method: method,
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                ...reservationData,
-                status: modalMode === 'rent' ? 'rented' : 'reserved'
-            })
+            body: JSON.stringify(body)
         });
 
         const data = await res.json();
@@ -309,7 +342,79 @@ export default function CarsPage() {
                </div>
             ) : cars.length > 0 ? (
               <>
-              <div className="table-responsive">
+              {/* Mobile Card View */}
+              <div className="d-md-none d-flex flex-column gap-3">
+                 {cars.map(car => (
+                    <div key={car._id} className="dashboard-card p-3">
+                        <div className="d-flex justify-content-between align-items-start mb-2">
+                           <div className="d-flex align-items-center">
+                              <div className="rounded-circle bg-primary bg-opacity-10 text-primary p-2 me-2 d-flex align-items-center justify-content-center" style={{width: '40px', height: '40px'}}>
+                                <i className="bi bi-car-front-fill"></i>
+                              </div>
+                              <div>
+                                <div className="fw-bold text-dark">{car.model}</div>
+                                <span className="font-monospace bg-light px-2 py-0 rounded text-secondary border small">{car.plate_number}</span>
+                              </div>
+                           </div>
+                           <div>
+                              {car.status === 'available' && <span className="badge bg-success bg-opacity-10 text-success rounded-pill px-2 py-1 small">{t.available}</span>}
+                              {car.status === 'rented' && <span className="badge bg-info bg-opacity-10 text-info rounded-pill px-2 py-1 small">{t.rented}</span>}
+                              {car.status === 'reserved' && <span className="badge bg-warning bg-opacity-10 text-warning rounded-pill px-2 py-1 small">{t.reserved}</span>}
+                           </div>
+                        </div>
+
+                        {(car.current_rental || (car as any).total_rented_ms > 0) && (
+                            <div className="mb-3 small text-muted border-top pt-2 mt-2">
+                               {car.current_rental && (
+                                   <div className="d-flex align-items-center mb-1">
+                                      <i className="bi bi-calendar3 me-2 text-primary opacity-50"></i>
+                                      <span>{formatDate(car.current_rental.start_date)} - {formatDate(car.current_rental.return_date)}</span>
+                                   </div>
+                               )}
+                               {(car as any).total_rented_ms > 0 && (
+                                  <div className="d-flex align-items-center">
+                                     <i className="bi bi-clock-history me-2 text-primary opacity-50"></i>
+                                     <span>Total Rented: {formatTotalDuration((car as any).total_rented_ms)}</span>
+                                  </div>
+                               )}
+                            </div>
+                        )}
+
+                        <div className="d-flex justify-content-end gap-2 mt-3">
+                            {car.status === 'available' ? (
+                                <>
+                                    <button onClick={() => openReservationModal(car, 'reserve')} className="btn btn-sm btn-light text-warning flex-grow-1" title={t.reserved}>
+                                        <i className="bi bi-clock-fill me-1"></i> {t.reserved}
+                                    </button>
+                                    <button onClick={() => openReservationModal(car, 'rent')} className="btn btn-sm btn-light text-info flex-grow-1" title={t.rented}>
+                                        <i className="bi bi-key-fill me-1"></i> {t.rented}
+                                    </button>
+                                </>
+                            ) : (
+                                <button onClick={() => openReservationModal(car, 'edit')} className="btn btn-sm btn-light text-primary flex-grow-1" title={t.edit_rental || 'Edit/Extend'}>
+                                    <i className="bi bi-pencil-square me-1"></i> {t.edit_rental || 'Edit/Extend'}
+                                </button>
+                            )}
+                            {car.status !== 'available' && car.status === 'rented' && (
+                                <button onClick={() => handleStatusChange(car._id, 'available')} className="btn btn-sm btn-light text-success flex-grow-1" title={t.available}>
+                                    <i className="bi bi-check-lg"></i>
+                                </button>
+                            )}
+                            <button onClick={() => openEditModal(car)} className="btn btn-sm btn-light text-primary" title={t.edit}>
+                                <i className="bi bi-pencil-fill"></i>
+                            </button>
+                            <button onClick={() => handleDelete(car._id)} className="btn btn-sm btn-light text-danger" title={t.delete}>
+                                <i className="bi bi-trash-fill"></i>
+                            </button>
+                        </div>
+                    </div>
+                 ))}
+              </div>
+
+              {/* Desktop Table View */}
+              <div className="d-none d-md-block dashboard-card" style={{overflow: 'hidden'}}>
+               <div className="card-body p-0">
+               <div className="table-responsive">
                 <table className="table table-hover mb-0 align-middle">
                   <thead className="bg-light">
                     <tr>
@@ -331,7 +436,6 @@ export default function CarsPage() {
                               </div>
                               <div className="d-flex flex-wrap align-items-center">
                                 <span className="fw-bold text-dark me-2">{car.model}</span>
-                                <span className="d-md-none font-monospace bg-light px-2 py-0 rounded text-secondary border small" style={{fontSize: '0.9em'}}>{car.plate_number}</span>
                               </div>
                           </div>
                         </td>
@@ -380,13 +484,21 @@ export default function CarsPage() {
                         <td className="text-end pe-4">
                           <div className="btn-group gap-2"> 
                             {/* Action Buttons styled like Image 2 */}
-                                 <button onClick={() => openReservationModal(car, 'reserve')} className="btn btn-sm btn-light text-warning rounded-circle d-flex align-items-center justify-content-center" style={{width: '32px', height: '32px'}} title={t.reserved}>
-                                     <i className="bi bi-clock-fill fs-6"></i>
-                                 </button>
-
-                                 <button onClick={() => openReservationModal(car, 'rent')} className="btn btn-sm btn-light text-info rounded-circle d-flex align-items-center justify-content-center" style={{width: '32px', height: '32px'}} title={t.rented}>
-                                     <i className="bi bi-key-fill fs-6"></i>
-                                 </button>
+                            {car.status === 'available' ? (
+                                <>
+                                     <button onClick={() => openReservationModal(car, 'reserve')} className="btn btn-sm btn-light text-warning rounded-circle d-flex align-items-center justify-content-center" style={{width: '32px', height: '32px'}} title={t.reserved}>
+                                         <i className="bi bi-clock-fill fs-6"></i>
+                                     </button>
+    
+                                     <button onClick={() => openReservationModal(car, 'rent')} className="btn btn-sm btn-light text-info rounded-circle d-flex align-items-center justify-content-center" style={{width: '32px', height: '32px'}} title={t.rented}>
+                                         <i className="bi bi-key-fill fs-6"></i>
+                                     </button>
+                                </>
+                            ) : (
+                                <button onClick={() => openReservationModal(car, 'edit')} className="btn btn-sm btn-light text-primary rounded-circle d-flex align-items-center justify-content-center" style={{width: '32px', height: '32px'}} title={t.edit_rental || 'Edit/Extend'}>
+                                     <i className="bi bi-pencil-square fs-6"></i>
+                                </button>
+                            )}
                             {car.status !== 'available' && car.status === 'rented' && (
                                 <button onClick={() => handleStatusChange(car._id, 'available')} className="btn btn-sm btn-light text-success rounded-circle d-flex align-items-center justify-content-center" style={{width: '32px', height: '32px'}} title={t.available}>
                                     <i className="bi bi-check-lg fs-6"></i>
@@ -405,10 +517,12 @@ export default function CarsPage() {
                     ))}
                   </tbody>
                 </table>
+               </div>
+               </div>
               </div>
-              
-              {/* Pagination */}
-              {total > limit && (
+
+               {/* Pagination */}
+               {total > limit && (
                 <div className="d-flex justify-content-center py-4 border-top">
                   <nav>
                     <ul className="pagination pagination-sm mb-0 gap-1">
@@ -473,7 +587,7 @@ export default function CarsPage() {
                     <div className="modal-content">
                         <form onSubmit={handleReservationSubmit}>
                             <div className="modal-header">
-                                <h5 className="modal-title">{modalMode === 'rent' ? (t.rented || 'Rent Car') : (t.reserved || 'Reserve Car')}</h5>
+                                <h5 className="modal-title">{modalMode === 'edit' ? (t.edit_rental || 'Edit Rental') : modalMode === 'rent' ? (t.rented || 'Rent Car') : (t.reserved || 'Reserve Car')}</h5>
                                 <button type="button" className="btn-close" onClick={() => setShowReservationModal(false)} />
                             </div>
                             <div className="modal-body">

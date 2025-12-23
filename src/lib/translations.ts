@@ -39,6 +39,7 @@ export interface Translations {
   cancel: string;
   delete: string;
   edit: string;
+  edit_rental: string;
   confirm_delete: string;
   add_client: string;
   full_name: string;
@@ -102,6 +103,10 @@ export interface Translations {
   print_contract: string;
   signature: string;
   terms: string;
+  address: string;
+  id_number: string;
+  passport_number: string;
+  license_number: string;
 }
 
 const TRANSLATIONS: Record<Language, Translations> = {
@@ -144,6 +149,7 @@ const TRANSLATIONS: Record<Language, Translations> = {
     cancel: 'إلغاء',
     delete: 'حذف',
     edit: 'تعديل',
+    edit_rental: 'تعديل الإيجار',
     confirm_delete: 'هل أنت متأكد من الحذف؟',
     add_client: 'إضافة عميل',
     full_name: 'الاسم الكامل',
@@ -207,6 +213,10 @@ const TRANSLATIONS: Record<Language, Translations> = {
     print_contract: 'طباعة العقد',
     signature: 'الإمضاء',
     terms: 'الشروط والأحكام',
+    address: 'العنوان',
+    id_number: 'رقم الهوية',
+    passport_number: 'رقم جواز السفر',
+    license_number: 'رقم رخصة القيادة',
   },
   en: {
     app_name: 'Car Rental System',
@@ -247,6 +257,7 @@ const TRANSLATIONS: Record<Language, Translations> = {
     cancel: 'Cancel',
     delete: 'Delete',
     edit: 'Edit',
+    edit_rental: 'Edit Rental',
     confirm_delete: 'Are you sure you want to delete?',
     add_client: 'Add Client',
     full_name: 'Full Name',
@@ -310,6 +321,10 @@ const TRANSLATIONS: Record<Language, Translations> = {
     print_contract: 'Print Contract',
     signature: 'Signature',
     terms: 'Terms & Conditions',
+    address: 'Address',
+    id_number: 'ID Number',
+    passport_number: 'Passport Number',
+    license_number: 'License Number',
   },
   fr: {
     app_name: 'Système de Location de Voitures',
@@ -350,6 +365,7 @@ const TRANSLATIONS: Record<Language, Translations> = {
     cancel: 'Annuler',
     delete: 'Supprimer',
     edit: 'Modifier',
+    edit_rental: 'Modifier Location',
     confirm_delete: 'Êtes-vous sûr de vouloir supprimer?',
     add_client: 'Ajouter Client',
     full_name: 'Nom Complet',
@@ -413,6 +429,10 @@ const TRANSLATIONS: Record<Language, Translations> = {
     print_contract: 'Imprimer Contrat',
     signature: 'Signature',
     terms: 'Termes et Conditions',
+    address: 'Adresse',
+    id_number: "Numéro d'identité",
+    passport_number: 'Numéro de passeport',
+    license_number: 'Numéro de permis',
   },
 };
 

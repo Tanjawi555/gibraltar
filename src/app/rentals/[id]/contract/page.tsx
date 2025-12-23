@@ -115,7 +115,10 @@ export default function ContractPage() {
             car_brand: data.car_model || '',
             plate_number: data.plate_number || '',
             client_name: data.client_name || '',
-            cin: data.passport_id || '', 
+            address_morocco: data.client_address || '',
+            cin: data.client_id_number || '', 
+            passport: data.passport_id || '',
+            license_number: data.driving_license || '',
             phone: data.client_phone || '',
             start_date: startStr,
             return_date: returnStr,
@@ -227,7 +230,7 @@ export default function ContractPage() {
           <div className={`${mainBorder} flex h-auto`}>
               
               {/* === LEFT COLUMN (55%) === */}
-              <div className={`w-[55%] ${colDivider} p-2 flex flex-col`}>
+              <div className={`w-[50%] ${colDivider} p-2 flex flex-col`}>
                   
                   {/* CAR DETAILS - BOXED */}
                   <div className="border border-[#4a4a4a] p-2 mb-4">
@@ -298,7 +301,7 @@ export default function ContractPage() {
               </div>
 
               {/* === RIGHT COLUMN (45%) === */}
-              <div className="w-[45%] p-2 flex flex-col overflow-hidden">
+              <div className="w-[50%] p-2 flex flex-col overflow-hidden">
                   
                   {/* Warning Text */}
                   <div className="text-[9px] text-right font-bold leading-tight m-0" dir="rtl" style={{fontFamily:'serif'}}>

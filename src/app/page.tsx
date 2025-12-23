@@ -265,7 +265,19 @@ export default function DashboardPage() {
               </div>
             </div>
           </div>
-          
+          <div className="col-md-4 animate-fade-in-up delay-3">
+             <div className={`dashboard-card p-4 h-100 border-start border-4 ${(data?.totalProfit || 0) >= 0 ? 'border-success' : 'border-danger'}`}>
+              <div className="d-flex align-items-center">
+                <div className={`card-icon-wrapper ${(data?.totalProfit || 0) >= 0 ? 'bg-success bg-opacity-10 text-success' : 'bg-danger bg-opacity-10 text-danger'} mb-0 me-3`}>
+                   <i className={`bi bi-graph-up-arrow`}></i>
+                </div>
+                <div>
+                  <p className="stat-label mb-1">{t.total_profit}</p>
+                  <h3 className={`fw-bold mb-0 ${(data?.totalProfit || 0) >= 0 ? 'text-success' : 'text-danger'}`}>{(data?.totalProfit || 0).toFixed(2)}</h3>
+                </div>
+              </div>
+            </div>
+          </div>
           <div className="col-md-4 animate-fade-in-up delay-3">
              <div className="dashboard-card p-4 h-100 border-start border-4 border-primary">
               <div className="d-flex align-items-center">
@@ -280,19 +292,7 @@ export default function DashboardPage() {
             </div>
           </div>
           
-          <div className="col-md-4 animate-fade-in-up delay-3">
-             <div className={`dashboard-card p-4 h-100 border-start border-4 ${(data?.totalProfit || 0) >= 0 ? 'border-success' : 'border-danger'}`}>
-              <div className="d-flex align-items-center">
-                <div className={`card-icon-wrapper ${(data?.totalProfit || 0) >= 0 ? 'bg-success bg-opacity-10 text-success' : 'bg-danger bg-opacity-10 text-danger'} mb-0 me-3`}>
-                   <i className={`bi bi-graph-up-arrow`}></i>
-                </div>
-                <div>
-                  <p className="stat-label mb-1">{t.total_profit}</p>
-                  <h3 className={`fw-bold mb-0 ${(data?.totalProfit || 0) >= 0 ? 'text-success' : 'text-danger'}`}>{(data?.totalProfit || 0).toFixed(2)}</h3>
-                </div>
-              </div>
-            </div>
-          </div>
+          
         </div>
 
         {/* Notifications Section */}

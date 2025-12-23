@@ -18,6 +18,7 @@ export async function GET(request: NextRequest) {
   return NextResponse.json(result);
 }
 
+// POST
 export async function POST(request: NextRequest) {
   const session = await getServerSession(authOptions);
   if (!session) {
@@ -25,20 +26,21 @@ export async function POST(request: NextRequest) {
   }
 
   const body = await request.json();
-  const { full_name, passport_id, driving_license, passport_image, license_image } = body;
+  const { full_name, passport_id, driving_license, passport_image, license_image, address, id_number } = body;
 
   if (!full_name) {
     return NextResponse.json({ error: 'Missing fields' }, { status: 400 });
   }
 
   try {
-    await ClientModel.create(full_name, passport_id, driving_license, passport_image, license_image);
+    await ClientModel.create(full_name, passport_id, driving_license, passport_image, license_image, address, id_number);
     return NextResponse.json({ success: true });
   } catch (error) {
     return NextResponse.json({ error: 'Failed to create client' }, { status: 500 });
   }
 }
 
+// PUT
 export async function PUT(request: NextRequest) {
   const session = await getServerSession(authOptions);
   if (!session) {
@@ -46,7 +48,7 @@ export async function PUT(request: NextRequest) {
   }
 
   const body = await request.json();
-  const { id, full_name, passport_id, driving_license, passport_image, license_image } = body;
+  const { id, full_name, passport_id, driving_license, passport_image, license_image, address, id_number } = body;
 
   if (!id || !full_name) {
     return NextResponse.json({ error: 'Missing fields' }, { status: 400 });
@@ -98,7 +100,7 @@ export async function PUT(request: NextRequest) {
        }
     }
 
-    await ClientModel.update(id, full_name, passport_id, driving_license, passport_image, license_image);
+    await ClientModel.update(id, full_name, passport_id, driving_license, passport_image, license_image, address, id_number);
     return NextResponse.json({ success: true });
   } catch (error) {
     return NextResponse.json({ error: 'Failed to update client' }, { status: 500 });

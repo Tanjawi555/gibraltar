@@ -18,6 +18,8 @@ export interface Client {
   full_name: string;
   passport_id?: string;
   driving_license?: string;
+  address?: string;
+  id_number?: string;
   passport_image?: string | null;
   license_image?: string | null;
   created_at: Date;
@@ -241,6 +243,7 @@ export const CarModel = {
   },
 };
 
+
 export const ClientModel = {
   async getAll() {
     const db = await getDatabase();
@@ -256,7 +259,8 @@ export const ClientModel = {
       query.$or = [
           { full_name: { $regex: search, $options: 'i' } },
           { passport_id: { $regex: search, $options: 'i' } },
-          { driving_license: { $regex: search, $options: 'i' } }
+          { driving_license: { $regex: search, $options: 'i' } },
+          { id_number: { $regex: search, $options: 'i' } }
       ];
     }
 
@@ -281,13 +285,17 @@ export const ClientModel = {
     passport_id?: string,
     driving_license?: string,
     passport_image?: string | null,
-    license_image?: string | null
+    license_image?: string | null,
+    address?: string,
+    id_number?: string
   ) {
     const db = await getDatabase();
     return db.collection<Client>('clients').insertOne({
       full_name,
       passport_id: passport_id || '',
       driving_license: driving_license || '',
+      address: address || '',
+      id_number: id_number || '',
       passport_image: passport_image || null,
       license_image: license_image || null,
       created_at: new Date(),
@@ -300,13 +308,17 @@ export const ClientModel = {
     passport_id?: string, 
     driving_license?: string,
     passport_image?: string | null,
-    license_image?: string | null
+    license_image?: string | null,
+    address?: string,
+    id_number?: string
   ) {
     const db = await getDatabase();
     const updateData: any = { 
         full_name, 
         passport_id: passport_id || '', 
-        driving_license: driving_license || '' 
+        driving_license: driving_license || '',
+        address: address || '',
+        id_number: id_number || ''
     };
     if (passport_image !== undefined) updateData.passport_image = passport_image;
     if (license_image !== undefined) updateData.license_image = license_image;
@@ -434,6 +446,7 @@ export const RentalModel = {
           passport_id: '$client.passport_id',
           driving_license: '$client.driving_license',
           client_address: '$client.address', 
+          client_id_number: '$client.id_number',
           client_phone: '$client.phone',
         },
       },

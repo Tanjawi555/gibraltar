@@ -11,6 +11,10 @@ interface Client {
   full_name: string;
   passport_image?: string;
   license_image?: string;
+  address?: string;
+  passport_id?: string;
+  driving_license?: string;
+  id_number?: string;
 }
 
 export default function ClientsPage() {
@@ -22,7 +26,13 @@ export default function ClientsPage() {
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
   const [editingClient, setEditingClient] = useState<Client | null>(null);
-  const [formData, setFormData] = useState({ full_name: '' });
+  const [formData, setFormData] = useState({ 
+    full_name: '', 
+    address: '', 
+    passport_id: '', 
+    driving_license: '', 
+    id_number: '' 
+  });
   const [passportFrontFile, setPassportFrontFile] = useState<File | null>(null);
   const [passportBackFile, setPassportBackFile] = useState<File | null>(null);
   const [licenseFrontFile, setLicenseFrontFile] = useState<File | null>(null);
@@ -181,7 +191,7 @@ export default function ClientsPage() {
       showMessage_('success', t.success);
       setShowModal(false);
       setEditingClient(null);
-      setFormData({ full_name: '' });
+      setFormData({ full_name: '', address: '', passport_id: '', driving_license: '', id_number: '' });
       setPassportFrontFile(null);
       setPassportBackFile(null);
       setLicenseFrontFile(null);
@@ -207,7 +217,13 @@ export default function ClientsPage() {
 
   const openEditModal = (client: Client) => {
     setEditingClient(client);
-    setFormData({ full_name: client.full_name });
+    setFormData({ 
+      full_name: client.full_name,
+      address: client.address || '',
+      passport_id: client.passport_id || '',
+      driving_license: client.driving_license || '',
+      id_number: client.id_number || ''
+    });
     setShowModal(true);
     setPassportFrontFile(null);
     setPassportBackFile(null);
@@ -278,12 +294,93 @@ export default function ClientsPage() {
                </div>
             ) : clients.length > 0 ? (
               <>
-              <div className="table-responsive">
+              {/* Mobile Card View */}
+              <div className="d-md-none d-flex flex-column gap-3">
+                {clients.map((client) => (
+                  <div key={client._id} className="dashboard-card p-3">
+                    <div className="d-flex justify-content-between align-items-start mb-3">
+                       <div className="d-flex align-items-center">
+                          <div className="rounded-circle bg-info bg-opacity-10 text-info p-2 me-2 d-flex align-items-center justify-content-center" style={{width: '40px', height: '40px'}}>
+                            <i className="bi bi-person-fill"></i>
+                          </div>
+                          <div>
+                            <div className="fw-bold text-dark">{client.full_name}</div>
+                            {client.address && <small className="text-muted d-block"><i className="bi bi-geo-alt-fill me-1"></i>{client.address}</small>}
+                          </div>
+                       </div>
+                    </div>
+
+                    <div className="mb-3 small text-muted">
+                        <div className="d-flex justify-content-between border-bottom pb-2 mb-2">
+                            <span>{t.id_number}:</span>
+                            <span className="fw-medium text-dark">{client.id_number || '-'}</span>
+                        </div>
+                        <div className="d-flex justify-content-between border-bottom pb-2 mb-2">
+                            <span>{t.passport_number}:</span>
+                            <span className="fw-medium text-dark">{client.passport_id || '-'}</span>
+                        </div>
+                        <div className="d-flex justify-content-between mb-2">
+                             <span>{t.license_number}:</span>
+                             <span className="fw-medium text-dark">{client.driving_license || '-'}</span>
+                        </div>
+                    </div>
+                    
+                    <div className="d-flex gap-2 mb-3">
+                        <div className="flex-grow-1 p-2 bg-light rounded text-center">
+                            <div className="small text-muted mb-1">{t.passport_image}</div>
+                             {client.passport_image ? (
+                                <div className="d-flex justify-content-center gap-1">
+                                  {client.passport_image.split(',').map((url, i) => (
+                                    url ? (
+                                      <button key={`${client._id}-p-${i}`} onClick={() => setPreviewImage(url)} className="btn btn-sm btn-white border shadow-sm text-primary p-1" title={i === 0 ? "Front" : "Back"}>
+                                        <i className="bi bi-file-earmark-person-fill"></i>
+                                      </button>
+                                    ) : null
+                                  ))}
+                                </div>
+                              ) : <span className="text-muted small">-</span>}
+                        </div>
+                         <div className="flex-grow-1 p-2 bg-light rounded text-center">
+                            <div className="small text-muted mb-1">{t.license_image}</div>
+                              {client.license_image ? (
+                                 <div className="d-flex justify-content-center gap-1">
+                                  {client.license_image.split(',').map((url, i) => (
+                                    url ? (
+                                      <button key={`${client._id}-l-${i}`} onClick={() => setPreviewImage(url)} className="btn btn-sm btn-white border shadow-sm text-primary p-1" title={i === 0 ? "Front" : "Back"}>
+                                        <i className="bi bi-card-heading"></i>
+                                      </button>
+                                    ) : null
+                                  ))}
+                                 </div>
+                              ) : <span className="text-muted small">-</span>}
+                        </div>
+                    </div>
+
+                    <div className="d-flex justify-content-end gap-2">
+                        <button onClick={() => openEditModal(client)} className="btn btn-sm btn-light text-primary flex-grow-1" title={t.edit}>
+                          <i className="bi bi-pencil-fill me-1"></i> {t.edit}
+                        </button>
+                        <button onClick={() => handleDelete(client._id)} className="btn btn-sm btn-light text-danger flex-grow-1" title={t.delete}>
+                          <i className="bi bi-trash-fill me-1"></i> {t.delete}
+                        </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {/* Desktop Table View */}
+              <div className="d-none d-md-block dashboard-card" style={{overflow: 'hidden'}}>
+               <div className="card-body p-0">
+               <div className="table-responsive">
                 <table className="table table-hover mb-0 align-middle">
                   <thead className="bg-light">
                     <tr>
                       <th className="border-0 py-3 ps-4 text-secondary text-uppercase small bg-transparent">#</th>
                       <th className="border-0 py-3 text-secondary text-uppercase small bg-transparent">{t.full_name}</th>
+                      <th className="border-0 py-3 text-secondary text-uppercase small bg-transparent d-none d-lg-table-cell">{t.address}</th>
+                      <th className="border-0 py-3 text-secondary text-uppercase small bg-transparent d-none d-xl-table-cell">{t.id_number}</th>
+                      <th className="border-0 py-3 text-secondary text-uppercase small bg-transparent d-none d-xl-table-cell">{t.passport_number}</th>
+                      <th className="border-0 py-3 text-secondary text-uppercase small bg-transparent d-none d-xl-table-cell">{t.license_number}</th>
                       <th className="border-0 py-3 text-secondary text-uppercase small bg-transparent">{t.passport_image}</th>
                       <th className="border-0 py-3 text-secondary text-uppercase small bg-transparent">{t.license_image}</th>
                       <th className="border-0 py-3 text-secondary text-uppercase small bg-transparent text-end pe-4">{t.actions}</th>
@@ -301,6 +398,10 @@ export default function ClientsPage() {
                               <div className="fw-bold text-dark">{client.full_name}</div>
                           </div>
                         </td>
+                        <td className="d-none d-lg-table-cell text-muted small">{client.address || '-'}</td>
+                        <td className="d-none d-xl-table-cell text-muted small font-monospace">{client.id_number || '-'}</td>
+                        <td className="d-none d-xl-table-cell text-muted small font-monospace">{client.passport_id || '-'}</td>
+                        <td className="d-none d-xl-table-cell text-muted small font-monospace">{client.driving_license || '-'}</td>
                         <td>
                           {client.passport_image ? (
                             <div className="d-flex gap-1">
@@ -308,8 +409,7 @@ export default function ClientsPage() {
                                 url ? (
                                   <button key={`${client._id}-p-${i}`} onClick={() => setPreviewImage(url)} className="btn btn-sm btn-light text-primary border-0 d-inline-flex align-items-center" title={i === 0 ? "Front" : "Back"}>
                                     <i className="bi bi-file-earmark-person-fill me-1 fs-6"></i>
-                                    <span className="d-none d-lg-inline">{i === 0 ? (t.front || 'Front') : (t.back || 'Back')}</span>
-                                  </button>
+                                </button>
                                 ) : null
                               ))}
                             </div>
@@ -324,8 +424,7 @@ export default function ClientsPage() {
                                 url ? (
                                   <button key={`${client._id}-l-${i}`} onClick={() => setPreviewImage(url)} className="btn btn-sm btn-light text-primary border-0 d-inline-flex align-items-center" title={i === 0 ? "Front" : "Back"}>
                                     <i className="bi bi-card-heading me-1 fs-6"></i>
-                                    <span className="d-none d-lg-inline">{i === 0 ? (t.front || 'Front') : (t.back || 'Back')}</span>
-                                  </button>
+                                </button>
                                 ) : null
                               ))}
                              </div>
@@ -347,6 +446,8 @@ export default function ClientsPage() {
                     ))}
                   </tbody>
                 </table>
+              </div>
+              </div>
               </div>
 
                {/* Pagination */}
@@ -413,6 +514,26 @@ export default function ClientsPage() {
                         <label className="form-label">{t.full_name}</label>
                         <input type="text" className="form-control" value={formData.full_name} onChange={(e) => setFormData({ ...formData, full_name: e.target.value })} required />
                       </div>
+
+                      <div className="mb-3">
+                        <label className="form-label">{t.address || "Address"}</label>
+                        <input type="text" className="form-control" value={formData.address} onChange={(e) => setFormData({ ...formData, address: e.target.value })} placeholder="Complete Address" />
+                      </div>
+
+                      <div className="row">
+                        <div className="col-md-4 mb-3">
+                          <label className="form-label">{t.id_number || "ID Number"}</label>
+                          <input type="text" className="form-control" value={formData.id_number} onChange={(e) => setFormData({ ...formData, id_number: e.target.value })} placeholder="National / Personal ID" />
+                        </div>
+                        <div className="col-md-4 mb-3">
+                           <label className="form-label">{t.passport_number || "Passport Number"}</label>
+                           <input type="text" className="form-control" value={formData.passport_id} onChange={(e) => setFormData({ ...formData, passport_id: e.target.value })} placeholder="Passport ID" />
+                        </div>
+                        <div className="col-md-4 mb-3">
+                           <label className="form-label">{t.license_number || "Driver's License (DL N)"}</label>
+                           <input type="text" className="form-control" value={formData.driving_license} onChange={(e) => setFormData({ ...formData, driving_license: e.target.value })} placeholder="License Number" />
+                        </div>
+                      </div>
                     
                       <div className="row">
                         <div className="col-md-6 mb-3">
@@ -472,7 +593,7 @@ export default function ClientsPage() {
         <button 
           className="btn btn-primary rounded-circle shadow-lg d-flex align-items-center justify-content-center position-fixed animate-fade-in-up" 
           style={{ width: '60px', height: '60px', bottom: '90px', right: '20px', zIndex: 1050 }}
-          onClick={() => { setEditingClient(null); setFormData({ full_name: '' }); setShowModal(true); setPassportFrontFile(null); setPassportBackFile(null); setLicenseFrontFile(null); setLicenseBackFile(null); }}
+          onClick={() => { setEditingClient(null); setFormData({ full_name: '', address: '', passport_id: '', driving_license: '', id_number: '' }); setShowModal(true); setPassportFrontFile(null); setPassportBackFile(null); setLicenseFrontFile(null); setLicenseBackFile(null); }}
         >
            <i className="bi bi-plus-lg fs-2"></i>
         </button>
