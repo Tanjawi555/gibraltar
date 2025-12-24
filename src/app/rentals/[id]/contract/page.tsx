@@ -103,6 +103,17 @@ export default function ContractPage() {
         const startStr = toBusinessInputString(data.start_date);
         const returnStr = toBusinessInputString(data.return_date);
         
+        // Helper to formatting dates to DD/MM/YYYY (timezone safe string split)
+        const toNormalDate = (val: string | undefined) => {
+            if (!val) return '';
+            // Check if YYYY-MM-DD format
+            if (typeof val === 'string' && val.match(/^\d{4}-\d{2}-\d{2}/)) {
+                const [y, m, d] = val.split('T')[0].split('-');
+                return `${d}/${m}/${y}`;
+            }
+            return val;
+        };
+
         // Calculate days using the strings (interpreted as local to preserve duration)
         const d1 = new Date(startStr);
         const d2 = new Date(returnStr);
@@ -115,13 +126,13 @@ export default function ContractPage() {
             car_brand: data.car_model || '',
             plate_number: data.plate_number || '',
             client_name: data.client_name || '',
-            birth_date: data.client_date_of_birth || '',
+            birth_date: toNormalDate(data.client_date_of_birth),
             address_morocco: data.client_address || '',
             cin: data.client_id_number || '', 
             passport: data.passport_id || '',
             license_number: data.driving_license || '',
-            license_expiry: data.client_license_expiry || '',
-            passport_expiry: data.client_passport_expiry || '',
+            license_expiry: toNormalDate(data.client_license_expiry),
+            passport_expiry: toNormalDate(data.client_passport_expiry),
             phone: data.client_phone || '',
             start_date: startStr,
             return_date: returnStr,
@@ -238,68 +249,97 @@ export default function ContractPage() {
               <div className={`w-[60%] ${colDivider} p-3 flex flex-col gap-4`}>
                   
                   {/* CAR DETAILS - BOXED */}
-                  <div className="border border-[#444] rounded p-2 bg-gray-50/50">
+                  <div className="border border-[#4a4a4a] rounded overflow-hidden mb-4">
                        {[
-                         {l:"Marque :", a:"النوع :", k:"car_brand"},
-                         {l:"N° Immatriculation :", a:"رقم التسجيل :", k:"plate_number"},
-                         {l:"Lieu de Livraison :", a:"مكان التسليم :", k:"delivery_place"},
-                         {l:"Lieu de Reprise :", a:"مكان الاسترجاع :", k:"return_place"}
+                         {l:"Marque", a:"النوع", k:"car_brand"},
+                         {l:"N° Immatriculation", a:"رقم التسجيل", k:"plate_number"},
+                         {l:"Lieu de Livraison", a:"مكان التسليم", k:"delivery_place"},
+                         {l:"Lieu de Reprise", a:"مكان الاسترجاع", k:"return_place"}
                        ].map((r, i) => (
-                         <div key={i} className="flex justify-between items-center w-full mb-1.5 last:mb-0">
-                             <span className="text-[10px] font-bold text-[#444] w-28 truncate">{r.l}</span>
-                             <input className={`${inputStyle} text-center`} value={(contractData as any)[r.k]} onChange={e => setContractData({...contractData, [r.k]: e.target.value})} />
-                             <span className="text-[10px] font-bold text-[#444] w-24 text-right font-serif truncate">{r.a}</span>
+                         <div key={i} className="flex items-stretch w-full border-b border-[#4a4a4a] last:border-b-0">
+                             <div className="w-[35%] flex flex-col justify-center items-center px-2 py-1 bg-gray-50 border-r border-[#4a4a4a]">
+                                 <span className="text-[9px] font-bold text-[#333] leading-none text-center mb-0.5">{r.l}</span>
+                                 <span className="text-[10px] font-bold text-[#333] font-serif leading-none text-center">{r.a}</span>
+                             </div>
+                             <div className="flex-grow bg-white">
+                                <input className="w-full h-full text-center text-[11px] font-bold text-[#222] bg-transparent outline-none px-2 py-1" 
+                                       value={(contractData as any)[r.k]} 
+                                       onChange={e => setContractData({...contractData, [r.k]: e.target.value})} />
+                             </div>
                          </div>
                        ))}
                   </div>
 
                   {/* LOCATAIRE */}
-                  <div className="flex flex-col gap-1 pb-3 border-b-2 border-[#333] border-dashed">
-                      <div className="flex justify-center items-center gap-4 font-black text-sm uppercase bg-[#eee] py-1 rounded mb-2">
+                  <div className="flex flex-col gap-1 mb-4">
+                      <div className="flex justify-center items-center gap-4 font-black text-sm uppercase mb-1 bg-[#4a4a4a] text-white py-1 rounded-sm">
                           <span>LOCATAIRE</span> <span style={{fontFamily:'serif'}}>المكتري</span>
                       </div>
-                      <div className="flex flex-col gap-1.5">
-                        {[
-                            {l:"Nom & Prénom :", a:"الإسم العائلي والشخصي :", k:"client_name"},
-                            {l:"Date de naissance :", a:"تاريخ الازدياد :", k:"birth_date"},
-                            {l:"Adresse au Maroc :", a:"العنوان بالمغرب :", k:"address_morocco"},
-                            {l:"Adresse à l'Etranger :", a:"العنوان بالخارج :", k:"address_abroad"},
-                            {l:"Permis de conduire N° :", a:"رخصة السياقة رقم :", k:"license_number"},
-                            {l:"Date d'expiration :", a:"تاريخ الانتهاء :", k:"license_expiry"},
-                            {l:"C.I.N :", a:"رقم البطاقة الوطنية :", k:"cin"},
-                            {l:"Passeport N° :", a:"جواز السفر :", k:"passport"},
-                            {l:"Date d'expiration :", a:"تاريخ الانتهاء :", k:"passport_expiry"},
-                            {l:"Tél :", a:"الهاتف :", k:"phone"},
-                        ].map((r, i) => (
-                            <div key={i} className="flex justify-between items-end w-full">
-                                <span className={labelStyle}>{r.l}</span>
-                                <input className={inputStyle} value={(contractData as any)[r.k]} onChange={e => setContractData({...contractData, [r.k]: e.target.value})} />
-                                <span className="text-[10px] font-bold text-[#333] flex-shrink-0 w-24 text-right font-serif truncate">{r.a}</span>
+                      <div className="border border-[#4a4a4a] rounded overflow-hidden">
+                          {[
+                            {l:"Nom & Prénom", a:"الإسم العائلي والشخصي", k:"client_name"},
+                            {l:"Date de naissance", a:"تاريخ الازدياد", k:"birth_date"},
+                            {l:"Adresse au Maroc", a:"العنوان بالمغرب", k:"address_morocco"},
+                            {l:"Adresse à l'Etranger", a:"العنوان بالخارج", k:"address_abroad"},
+                            {l:"Permis de conduire N°", a:"رخصة السياقة رقم", k:"license_number"},
+                            {l:"Date d'expiration", a:"تاريخ الانتهاء", k:"license_expiry"},
+                            {l:"C.I.N", a:"رقم البطاقة الوطنية", k:"cin"},
+                            {l:"Passeport N°", a:"جواز السفر", k:"passport"},
+                            {l:"Date d'expiration", a:"تاريخ الانتهاء", k:"passport_expiry"},
+                            {l:"Tél", a:"الهاتف", k:"phone"},
+                          ].map((r, i) => (
+                            <div key={i} className="flex items-stretch w-full border-b border-[#4a4a4a] last:border-b-0">
+                                <div className="w-[35%] flex flex-col justify-center items-center px-2 py-1 bg-gray-50 border-r border-[#4a4a4a]">
+                                    <span className="text-[9px] font-bold text-[#333] leading-none text-center mb-0.5">{r.l}</span>
+                                    <span className="text-[10px] font-bold text-[#333] font-serif leading-none text-center">{r.a}</span>
+                                </div>
+                                <div className="flex-grow bg-white">
+                                    <input className="w-full h-full text-center text-[11px] font-bold text-[#222] bg-transparent outline-none px-2 py-1" 
+                                           value={(contractData as any)[r.k]} 
+                                           onChange={e => setContractData({...contractData, [r.k]: e.target.value})} />
+                                </div>
                             </div>
-                        ))}
+                          ))}
                       </div>
                   </div>
 
                   {/* CONDUCTEUR SUPPLEMENTAIRE */}
                   <div className="flex flex-col gap-1">
-                      <div className="flex justify-between items-center px-2 font-black text-xs uppercase mb-2 bg-[#eee] py-1 rounded">
-                          <span>Le Conducteur Supplémentaire</span> <span style={{fontFamily:'serif'}}>السائق المرخص</span>
+                      <div className="flex justify-center items-center gap-4 font-black text-sm uppercase mb-1 bg-[#4a4a4a] text-white py-1 rounded-sm">
+                          <span>CONDUCTEUR SUPPLEMENTAIRE</span> <span style={{fontFamily:'serif'}}>السائق المرخص</span>
                       </div>
-                      <div className="flex flex-col gap-1.5">
+                      <div className="border border-[#4a4a4a] rounded overflow-hidden">
                           {[
-                            {l:"Nom & Prénom :", a:"الإسم العائلي والشخصي :", k:"second_driver_name"},
-                            {l:"Permis de conduire N° :", a:"رخصة السياقة رقم :", k:"second_driver_license"},
-                            {l:"Date d'expiration :", a:"تاريخ الانتهاء :", k:"second_driver_expiry"},
-                            {l:"Passeport N° :", a:"رقم جواز السفر :", k:"second_driver_passport"},
-                            {l:"C.I.N :", a:"رقم البطاقة الوطنية :", k:"second_driver_cin"},
+                            {l:"Nom & Prénom", a:"الإسم العائلي والشخصي", k:"second_driver_name"},
+                            {l:"Permis de conduire N°", a:"رخصة السياقة رقم", k:"second_driver_license"},
+                            {l:"Date d'expiration", a:"تاريخ الانتهاء", k:"second_driver_expiry"},
+                            {l:"Passeport N°", a:"رقم جواز السفر", k:"second_driver_passport"},
+                            {l:"C.I.N", a:"رقم البطاقة الوطنية", k:"second_driver_cin"},
                           ].map((r, i) => (
-                            <div key={i} className="flex justify-between items-end w-full">
-                                <span className={labelStyle}>{r.l}</span>
-                                <input className={inputStyle} value={(contractData as any)[r.k]} onChange={e => setContractData({...contractData, [r.k]: e.target.value})} />
-                                <span className="text-[10px] font-bold text-[#333] flex-shrink-0 w-24 text-right font-serif truncate">{r.a}</span>
+                            <div key={i} className="flex items-stretch w-full border-b border-[#4a4a4a] last:border-b-0">
+                                <div className="w-[35%] flex flex-col justify-center items-center px-2 py-1 bg-gray-50 border-r border-[#4a4a4a]">
+                                    <span className="text-[9px] font-bold text-[#333] leading-none text-center mb-0.5">{r.l}</span>
+                                    <span className="text-[10px] font-bold text-[#333] font-serif leading-none text-center">{r.a}</span>
+                                </div>
+                                <div className="flex-grow bg-white">
+                                    <input className="w-full h-full text-center text-[11px] font-bold text-[#222] bg-transparent outline-none px-2 py-1" 
+                                           value={(contractData as any)[r.k]} 
+                                           onChange={e => setContractData({...contractData, [r.k]: e.target.value})} />
+                                </div>
                             </div>
                           ))}
-                         
+                          {/* Caution/Deposit Special Row */}
+                          <div className="flex items-stretch w-full border-t border-[#4a4a4a]">
+                                <div className="w-[35%] flex flex-col justify-center items-center px-2 py-1 bg-gray-50 border-r border-[#4a4a4a]">
+                                    <span className="text-[9px] font-bold text-[#333] leading-none text-center mb-0.5">Caution</span>
+                                    <span className="text-[10px] font-bold text-[#333] font-serif leading-none text-center">ضمانة</span>
+                                </div>
+                                <div className="flex-grow bg-white">
+                                    <input className="w-full h-full text-center text-[11px] font-bold text-[#222] bg-transparent outline-none px-2 py-1" 
+                                           value={contractData.deposit} 
+                                           onChange={e => setContractData({...contractData, deposit: e.target.value})} />
+                                </div>
+                          </div>
                       </div>
                   </div>
 
@@ -586,7 +626,9 @@ export default function ContractPage() {
                        {/* Agency */}
                        <div className="flex flex-col items-end">
                            <div className="font-bold text-[12px] italic mb-2 text-right w-full">
-                               Fait à Tanger le : <span className="inline-block w-24 border-b border-black"></span>
+                               Fait à Tanger le : <span className="inline-block min-w-[80px] border-b border-black px-1 text-center font-bold not-italic">
+                                   {formatDatePart(contractData.start_date, 'day')}/{formatDatePart(contractData.start_date, 'month')}/{formatDatePart(contractData.start_date, 'year')}
+                               </span>
                            </div>
                            
                            <div className="font-black text-xl tracking-[0.2em] text-[#333] mb-1 text-center w-full uppercase">
