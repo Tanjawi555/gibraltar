@@ -277,26 +277,37 @@ export default function ContractPage() {
                       </div>
                       <div className="border border-[#4a4a4a] rounded overflow-hidden">
                           {[
-                            {l:"Nom & Prénom", a:"الإسم العائلي والشخصي", k:"client_name"},
+                            {l:"Nom & Prénom", a:"الإسم العائلي والشخصي", k:"client_name", multiline: false},
                             {l:"Date de naissance", a:"تاريخ الازدياد", k:"birth_date"},
-                            {l:"Adresse au Maroc", a:"العنوان بالمغرب", k:"address_morocco"},
-                            {l:"Adresse à l'Etranger", a:"العنوان بالخارج", k:"address_abroad"},
+                            {l:"Adresse au Maroc", a:"العنوان بالمغرب", k:"address_morocco", multiline: true},
+                            {l:"Adresse à l'Etranger", a:"العنوان بالخارج", k:"address_abroad", multiline: true},
                             {l:"Permis de conduire N°", a:"رخصة السياقة رقم", k:"license_number"},
                             {l:"Date d'expiration", a:"تاريخ الانتهاء", k:"license_expiry"},
                             {l:"C.I.N", a:"رقم البطاقة الوطنية", k:"cin"},
                             {l:"Passeport N°", a:"جواز السفر", k:"passport"},
                             {l:"Date d'expiration", a:"تاريخ الانتهاء", k:"passport_expiry"},
-                            {l:"Tél", a:"الهاتف", k:"phone"},
+                            // Phone removed as requested
                           ].map((r, i) => (
                             <div key={i} className="flex items-stretch w-full border-b border-[#4a4a4a] last:border-b-0">
-                                <div className="w-[35%] flex flex-col justify-center items-center px-2 py-1 bg-gray-50 border-r border-[#4a4a4a]">
+                                <div className="w-[30%] flex flex-col justify-center items-center px-1 py-1 bg-gray-50 border-r border-[#4a4a4a]">
                                     <span className="text-[9px] font-bold text-[#333] leading-none text-center mb-0.5">{r.l}</span>
                                     <span className="text-[10px] font-bold text-[#333] font-serif leading-none text-center">{r.a}</span>
                                 </div>
-                                <div className="flex-grow bg-white">
-                                    <input className="w-full h-full text-center text-[11px] font-bold text-[#222] bg-transparent outline-none px-2 py-1" 
-                                           value={(contractData as any)[r.k]} 
-                                           onChange={e => setContractData({...contractData, [r.k]: e.target.value})} />
+                                <div className="flex-grow bg-white min-h-[24px]">
+                                    {r.multiline ? (
+                                        <textarea 
+                                            className="w-full h-full text-center text-[11px] font-bold text-[#222] bg-transparent outline-none px-2 py-1 resize-none overflow-hidden" 
+                                            rows={2}
+                                            value={(contractData as any)[r.k]} 
+                                            onChange={e => setContractData({...contractData, [r.k]: e.target.value})} 
+                                        />
+                                    ) : (
+                                        <input 
+                                            className="w-full h-full text-center text-[11px] font-bold text-[#222] bg-transparent outline-none px-2 py-1" 
+                                            value={(contractData as any)[r.k]} 
+                                            onChange={e => setContractData({...contractData, [r.k]: e.target.value})} 
+                                        />
+                                    )}
                                 </div>
                             </div>
                           ))}
@@ -427,7 +438,7 @@ export default function ContractPage() {
                     </div>
 
                     {/* Checkboxes */}
-                    <div className="mb-4 pl-1">
+                    <div className=" pl-1">
                         <div className="font-bold text-[11px] mb-2 px-1 border-b border-gray-300 inline-block uppercase tracking-wide">État au Départ</div>
                         <div className="flex gap-6 px-2 mb-2">
                             {/* Dommage */}
@@ -456,7 +467,7 @@ export default function ContractPage() {
                                 </div>
                             </div>
                         </div>
-                    </div>
+                    </div>  
                   </div>
 
                   {/* Diagram & Comments */}
@@ -553,7 +564,7 @@ export default function ContractPage() {
                </div>
 
                {/* Row 2: Payment Method */}
-               <div className="flex justify-between items-center mb-5">
+               <div className="flex justify-between items-center mb-3">
                    {/* Label Box - Pill Shape */}
                    <div className="w-[38%] border border-[#333] rounded-[18px] h-12 flex flex-col justify-center px-5 bg-gray-50/50">
                        <span className="font-bold text-base leading-none text-[#333]">Mode de paiement</span>
