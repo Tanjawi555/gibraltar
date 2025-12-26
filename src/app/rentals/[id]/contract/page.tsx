@@ -195,14 +195,27 @@ export default function ContractPage() {
             size: A4;
             margin: 0;
           }
-          body {
+          html, body {
             margin: 0;
             padding: 0;
+            height: 100%;
+            overflow: hidden; /* Prevent scrolling/spillover */
             -webkit-print-color-adjust: exact;
           }
-          /* Hide headers/footers inserted by browser */
+          /* Scale down slightly to ensure it fits safely on all printer margins */
           @media print {
-            body { -webkit-print-color-adjust: exact; }
+            body { 
+              -webkit-print-color-adjust: exact; 
+              transform: scale(0.96); 
+              transform-origin: top center;
+              width: 100%;
+            }
+            .print-container {
+               height: 295mm !important; /* Force slightly less than A4 height */
+               overflow: hidden !important;
+               page-break-after: avoid !important;
+               break-after: avoid !important;
+            }
           }
         `}
       </style>
@@ -218,10 +231,10 @@ export default function ContractPage() {
       </div>
 
       {/* Contract A4 Container */}
-      <div className="mx-auto bg-white shadow-2xl print:shadow-none !p-2 md:!px-[8mm] md:!py-[10mm] print:!px-4 print:!py-4 box-border relative flex flex-col w-full md:w-[210mm] print:w-[210mm] min-h-screen md:min-h-[297mm] print:min-h-[296mm] print:max-h-[297mm] print:overflow-hidden">
+      <div className="print-container mx-auto bg-white shadow-2xl print:shadow-none !p-2 md:!px-[8mm] md:!py-[10mm] print:!px-2 print:!py-2 box-border relative flex flex-col w-full md:w-[210mm] print:w-[210mm] min-h-screen md:min-h-[297mm] print:min-h-0 print:h-[295mm]">
           
           {/* HEADER SECTION */}
-          <div className="flex flex-col md:flex-row print:flex-row justify-between items-center pb-4 mb-2 print:pb-2 print:mb-2 border-black gap-4 md:gap-0">
+          <div className="flex flex-col md:flex-row print:flex-row justify-between items-center pb-4 mb-2 print:pb-0 print:mb-1 border-black gap-4 md:gap-0">
                {/* Left: French Info */}
                <div className="text-center md:text-left w-full md:w-[40%] tracking-wide">
                    <h1 className="text-2xl md:text-3xl print:text-xl font-black uppercase tracking-tight mb-1 print:mb-0 leading-none text-black m-0">NARENOS CAR</h1>
@@ -253,7 +266,7 @@ export default function ContractPage() {
                </div>
           </div>
           
-         
+            
 
           {/* MAIN BODY: 2 COLUMN LAYOUT */}
           <div className={`${mainBorder} flex flex-col md:flex-row print:flex-row flex-grow`}>
