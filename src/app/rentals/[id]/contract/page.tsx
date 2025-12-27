@@ -193,11 +193,11 @@ export default function ContractPage() {
         {`
           @page {
             size: A4;
-            margin: 0 !important;
+            margin: 0mm;
           }
           html, body {
-            margin: 0 !important;
-            padding: 0 !important;
+            margin: 0;
+            padding: 0;
             background-color: white;
             width: 210mm;
             height: 297mm;
