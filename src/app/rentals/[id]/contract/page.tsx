@@ -198,21 +198,37 @@ export default function ContractPage() {
           body {
             margin: 0;
             padding: 0;
-            width: 100%;
             -webkit-print-color-adjust: exact !important;
             print-color-adjust: exact !important;
+            background-color: white;
           }
-          /* Standardize print container to adapt to the page width provided by the device */
           @media print {
+            html, body {
+              width: 210mm;
+              height: 297mm;
+              overflow: hidden;
+            }
             .print-container {
-               width: 100%;
-               max-width: 100%;
-               margin: 0;
-               padding: 5mm !important; /* Safe zone */
+               width: 210mm !important;
+               height: 297mm !important;
+               position: absolute;
+               top: 0;
+               left: 0;
+               margin: 0 !important;
+               padding: 5mm !important;
                box-sizing: border-box;
-               /* Force single page behavior */
-               height: 297mm;
+               background-color: white;
+               
+               /* Flex Layout to utilize space */
+               display: flex;
+               flex-direction: column;
+               
+               /* Critical: Fix for content overflowing or shrinking on mobile */
                overflow: hidden;
+               
+               /* Slight scale to ensure borders don't trigger second page due to rounding */
+               transform: scale(0.99); 
+               transform-origin: top center;
             }
           }
         `}
@@ -229,7 +245,7 @@ export default function ContractPage() {
       </div>
 
       {/* Contract A4 Container */}
-      <div className="print-container mx-auto bg-white shadow-2xl print:shadow-none !p-2 md:!px-[8mm] md:!py-[10mm] print:!p-0 box-border relative flex flex-col w-full md:w-[210mm] print:w-full min-h-screen md:min-h-[297mm] print:min-h-0">
+      <div className="print-container mx-auto bg-white shadow-2xl print:shadow-none !p-2 md:!px-[8mm] md:!py-[10mm] box-border relative flex flex-col w-full md:w-[210mm] min-h-screen md:min-h-[297mm] print:min-h-0">
           
           {/* HEADER SECTION */}
           <div className="flex flex-col md:flex-row print:flex-row justify-between items-center pb-4 mb-2 print:pb-0 print:mb-1 border-black gap-4 md:gap-0">
