@@ -73,6 +73,25 @@ export default function ProfitsPage() {
     }
   };
 
+  const handleDelete = async (id: string) => {
+    if (!confirm(t.confirm_delete || 'Are you sure you want to delete?')) return;
+    
+    try {
+        const res = await fetch(`/api/rentals?id=${id}`, {
+            method: 'DELETE'
+        });
+        
+        if (res.ok) {
+            fetchData(); // Refresh data
+        } else {
+            alert(t.error || 'Failed to delete');
+        }
+    } catch (error) {
+        console.error('Delete error', error);
+        alert(t.error || 'Failed to delete');
+    }
+  };
+
   const handleLanguageChange = (newLang: Language) => {
     setLang(newLang);
     setT(getTranslations(newLang));
@@ -194,6 +213,7 @@ export default function ProfitsPage() {
                       <th className="border-0 py-3 text-secondary text-uppercase small bg-transparent d-none d-md-table-cell">{t.return_date}</th>
                       <th className="border-0 py-3 text-secondary text-uppercase small bg-transparent">{t.rental_price}</th>
                       <th className="border-0 py-3 text-secondary text-uppercase small bg-transparent text-end pe-4">{t.status}</th>
+                      <th className="border-0 py-3 text-secondary text-uppercase small bg-transparent text-end pe-4">{t.actions || 'Actions'}</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -231,6 +251,15 @@ export default function ProfitsPage() {
                           {rental.status === 'reserved' && <span className="badge bg-warning bg-opacity-10 text-warning rounded-pill px-3 py-2">{t.reserved}</span>}
                           {rental.status === 'rented' && <span className="badge bg-info bg-opacity-10 text-info rounded-pill px-3 py-2">{t.rented}</span>}
                           {rental.status === 'returned' && <span className="badge bg-success bg-opacity-10 text-success rounded-pill px-3 py-2">{t.returned}</span>}
+                        </td>
+                        <td className="text-end pe-4">
+                           <button 
+                                className="btn btn-sm btn-outline-danger" 
+                                onClick={() => handleDelete(rental._id)}
+                                title={t.delete || 'Delete'}
+                           >
+                                <i className="bi bi-trash"></i>
+                           </button>
                         </td>
                       </tr>
                     ))}
