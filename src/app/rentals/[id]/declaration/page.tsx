@@ -162,78 +162,97 @@ export default function DeclarationPage() {
             {/* Inputs Overlay Layer */}
             <div className="absolute inset-0 w-full h-full text-[13px] font-bold">
 
+                {/* Je soussigné (Full Name) */}
+                <input 
+                    value={data.name} 
+                    onChange={e => setData({...data, name: e.target.value})}
+                    className="absolute top-[22%] left-[20%] w-[40%] h-[2.2%] bg-transparent border-none outline-none text-center uppercase"
+                />
+
                 {/* Nom (Surname) */}
                 <input 
                     value={data.name.split(' ').slice(1).join(' ')} 
                     onChange={e => setData({...data, name: e.target.value})}
-                    className="absolute top-[21.2%] left-[30%] w-[40%] h-[2.2%] bg-transparent border-none outline-none text-center uppercase"
+                    className="absolute top-[23.9%] left-[20%] w-[40%] h-[2.2%] bg-transparent border-none outline-none text-center uppercase"
                 />
 
                 {/* Prénom (Name) */}
                 <input 
                     value={data.name.split(' ')[0]} 
                     onChange={e => setData({...data, name: e.target.value})}
-                    className="absolute top-[23.9%] left-[30%] w-[40%] h-[2.2%] bg-transparent border-none outline-none text-center uppercase"
+                    className="absolute top-[26%] left-[20%] w-[40%] h-[2.2%] bg-transparent border-none outline-none text-center uppercase"
                 />
 
                 {/* CNIE (ID) */}
                 <input 
                     value={data.cnie} 
                     onChange={e => setData({...data, cnie: e.target.value})}
-                    className="absolute top-[26.6%] left-[35%] w-[35%] h-[2.2%] bg-transparent border-none outline-none text-center tracking-[0.5em]"
+                    className="absolute top-[30%] left-[34.8%] w-[60%] h-[2.2%] bg-transparent border-none outline-none text-left tracking-[1.1rem] font-mono pl-[3.8rem]"
                 />
 
                 {/* License */}
                 <input 
                     value={data.license} 
                     onChange={e => setData({...data, license: e.target.value})}
-                    className="absolute top-[29.3%] left-[35%] w-[35%] h-[2.2%] bg-transparent border-none outline-none text-center tracking-[0.5em]"
+                    className="absolute top-[32.0%] left-[33%] w-[60%] h-[2.2%] bg-transparent border-none outline-none text-left tracking-[1.1rem] font-mono pl-[0.8rem]"
                 />
 
                 {/* Address */}
                 <input 
                     value={data.address} 
                     onChange={e => setData({...data, address: e.target.value})}
-                    className="absolute top-[32.0%] left-[25%] w-[60%] h-[2.2%] bg-transparent border-none outline-none text-center"
+                    className="absolute top-[34.7%] left-[25%] w-[60%] h-[2.2%] bg-transparent border-none outline-none text-center"
                 />
 
                 {/* Ville */}
                 <input 
                     value={data.city} 
                     onChange={e => setData({...data, city: e.target.value})}
-                    className="absolute top-[34.7%] left-[25%] w-[60%] h-[2.2%] bg-transparent border-none outline-none text-center"
+                    className="absolute top-[36.4%] left-[25%] w-[60%] h-[2.2%] bg-transparent border-none outline-none text-center"
                 />
 
                 {/* Zip */}
                 <input 
                     value={data.zip} 
                     onChange={e => setData({...data, zip: e.target.value})}
-                    className="absolute top-[37.4%] left-[45%] w-[20%] h-[2.2%] bg-transparent border-none outline-none text-center tracking-[1em]"
+                    className="absolute top-[40.1%] left-[45%] w-[20%] h-[2.2%] bg-transparent border-none outline-none text-center tracking-[1em]"
                 />
 
                 {/* GSM */}
                 <input 
-                    className="absolute top-[40.1%] left-[40%] w-[40%] h-[2.2%] bg-transparent border-none outline-none text-center"
+                    className="absolute top-[42.8%] left-[40%] w-[40%] h-[2.2%] bg-transparent border-none outline-none text-center"
                 />
 
                  {/* Email */}
                  <input 
-                    className="absolute top-[42.8%] left-[40%] w-[40%] h-[2.2%] bg-transparent border-none outline-none text-center"
+                    className="absolute top-[45.5%] left-[40%] w-[40%] h-[2.2%] bg-transparent border-none outline-none text-center"
                 />
 
-                {/* Car Plate Section (Middle) */}
-                {/* Plate Format: 12345 | A | 12 */}
-                <div className="absolute top-[46.8%] left-[40%] w-[30%] h-[3%] flex items-center justify-center gap-4">
-                     {/* Left number */}
-                     <span className="font-bold text-lg">{data.plate.split('-')[0]}</span>
-                     {/* Letter/Middle code */}
-                     <span className="font-bold text-lg">{data.plate.split('-')[1]}</span>
-                     {/* Region code */}
-                     <span className="font-bold text-lg">{data.plate.split('-')[2]}</span>
-                </div>
+               
+                
+                {/* Left Part: 12345 */}
+                <input 
+                    value={data.plate.split('-')[0]} 
+                    readOnly
+                    className="absolute top-[47.1%] left-[32%] w-[18%] h-[3%] bg-transparent border-none outline-none text-right tracking-[0.9rem] font-bold font-mono"
+                />
+
+                {/* Middle Part: Letter */}
+                <input 
+                    value={data.plate.split('-')[1]?.replace('/', '')} 
+                    readOnly
+                    className="absolute top-[47.1%] left-[54.5%] w-[4%] h-[3%] bg-transparent border-none outline-none text-center font-bold font-mono"
+                />
+
+                {/* Right Part: Region (40) */}
+                <input 
+                    value={data.plate.split('-')[2]} 
+                    readOnly
+                    className="absolute top-[48.1%] left-[61%] w-[10%] h-[3%] bg-transparent border-none outline-none text-left tracking-[0.9rem] font-bold font-mono pl-3"
+                />
                 
                 {/* Agency Name */}
-                 <div className="absolute top-[49.5%] left-[40%] w-[30%] text-center text-xs">
+                 <div className="absolute top-[49.2%] left-[40%] w-[30%] text-center text-xs">
                      Narenos S.A.R.L
                 </div>
 
@@ -243,37 +262,37 @@ export default function DeclarationPage() {
                 <input 
                     value={data.start_date}
                     onChange={e => setData({...data, start_date: e.target.value})}
-                    className="absolute top-[58.0%] left-[45%] w-[35%] h-[2%] bg-transparent border-none outline-none text-center tracking-widest text-sm"
+                    className="absolute top-[58.2%] left-[45%] w-[35%] h-[2%] bg-transparent border-none outline-none text-center tracking-widest text-sm"
                 />
                  {/* Start Time */}
                 <input 
                     value={data.start_time}
                     onChange={e => setData({...data, start_time: e.target.value})}
-                    className="absolute top-[60.7%] left-[45%] w-[35%] h-[2%] bg-transparent border-none outline-none text-center tracking-widest text-sm"
+                    className="absolute top-[63.6%] left-[45%] w-[35%] h-[2%] bg-transparent border-none outline-none text-center tracking-widest text-sm"
                 />
 
                  {/* Return Date */}
                  <input 
                     value={data.return_date}
                     onChange={e => setData({...data, return_date: e.target.value})}
-                    className="absolute top-[66.0%] left-[45%] w-[35%] h-[2%] bg-transparent border-none outline-none text-center tracking-widest text-sm"
+                    className="absolute top-[66.2%] left-[45%] w-[35%] h-[2%] bg-transparent border-none outline-none text-center tracking-widest text-sm"
                 />
                  {/* Return Time */}
                 <input 
                     value={data.return_time}
                     onChange={e => setData({...data, return_time: e.target.value})}
-                    className="absolute top-[68.7%] left-[45%] w-[35%] h-[2%] bg-transparent border-none outline-none text-center tracking-widest text-sm"
+                    className="absolute top-[71.6%] left-[45%] w-[35%] h-[2%] bg-transparent border-none outline-none text-center tracking-widest text-sm"
                 />
 
                  {/* Fait a / Le */}
-                 <div className="absolute top-[73.2%] left-[30%] w-[20%] text-center text-sm uppercase">Tanger</div>
-                 <div className="absolute top-[75.9%] left-[30%] w-[20%] text-center text-sm uppercase">{data.start_date}</div>
+                 <div className="absolute top-[75.9%] left-[30%] w-[20%] text-center text-sm uppercase">Tanger</div>
+                 <div className="absolute top-[78.6%] left-[30%] w-[20%] text-center text-sm uppercase">{data.start_date}</div>
 
 
                 {/* Signatures */}
                 {/* Agency Signature Box (Left) */}
                 <div 
-                    className="absolute top-[79%] left-[5%] w-[45%] h-[12%] cursor-pointer hover:bg-blue-50/20 flex items-center justify-center p-2"
+                    className="absolute top-[85%] left-[5%] w-[45%] h-[12%] cursor-pointer hover:bg-blue-50/20 flex items-center justify-center p-2"
                     onClick={() => setActiveSignField('agency')}
                 >
                     {data.agency_signature ? (
@@ -285,7 +304,7 @@ export default function DeclarationPage() {
 
                 {/* Client Signature Box (Right) */}
                  <div 
-                    className="absolute top-[79%] left-[50%] w-[45%] h-[12%] cursor-pointer hover:bg-blue-50/20 flex items-center justify-center p-2"
+                    className="absolute top-[85%] left-[50%] w-[45%] h-[12%] cursor-pointer hover:bg-blue-50/20 flex items-center justify-center p-2"
                     onClick={() => setActiveSignField('client')}
                 >
                     {data.client_signature ? (
