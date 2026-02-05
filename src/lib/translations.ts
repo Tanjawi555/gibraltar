@@ -111,6 +111,10 @@ export interface Translations {
   date_of_birth: string;
   license_expiry: string;
   passport_expiry: string;
+  mot_expiry: string;
+  service_technic: string;
+  mot_expired: string;
+  mot_expiring_soon: string;
 }
 
 const TRANSLATIONS: Record<Language, Translations> = {
@@ -225,6 +229,10 @@ const TRANSLATIONS: Record<Language, Translations> = {
     date_of_birth: 'تاريخ الميلاد',
     license_expiry: 'تاريخ انتهاء الرخصة',
     passport_expiry: 'تاريخ انتهاء الجواز',
+    mot_expiry: 'انتهاء الفحص الفني',
+    service_technic: 'الصيانة الفنية',
+    mot_expired: 'انتهى الفحص الفني',
+    mot_expiring_soon: 'الفحص ينتهي قريباً',
   },
   en: {
     app_name: 'Car Rental System',
@@ -337,6 +345,10 @@ const TRANSLATIONS: Record<Language, Translations> = {
     date_of_birth: 'Date of Birth',
     license_expiry: 'License Expiry',
     passport_expiry: 'Passport Expiry',
+    mot_expiry: 'MOT Expiry',
+    service_technic: 'Technical Service',
+    mot_expired: 'MOT Expired',
+    mot_expiring_soon: 'MOT Expiring Soon',
   },
   fr: {
     app_name: 'Système de Location de Voitures',
@@ -449,6 +461,10 @@ const TRANSLATIONS: Record<Language, Translations> = {
     date_of_birth: 'Date de naissance',
     license_expiry: 'Expiration du permis',
     passport_expiry: 'Expiration du passeport',
+    mot_expiry: 'Expiration Visite Technique',
+    service_technic: 'Service Technique',
+    mot_expired: 'Visite Technique Expirée',
+    mot_expiring_soon: 'Visite Technique Expire Bientôt',
   },
 };
 

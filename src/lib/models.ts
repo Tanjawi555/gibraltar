@@ -1,17 +1,25 @@
 import { ObjectId } from 'mongodb';
 import { getDatabase } from './mongodb';
 
+// ... (imports remain)
+
 export interface Car {
   _id?: ObjectId;
   model: string;
   plate_number: string;
   status: 'available' | 'rented' | 'reserved';
   created_at: Date;
+  mot_expiry?: string; // ISO Date string
   current_rental?: {
     start_date: string;
     return_date: string;
   };
 }
+
+// ... (Client, Rental, Expense, User interfaces remain)
+
+
+
 
 export interface Client {
   _id?: ObjectId;
@@ -804,6 +812,35 @@ export const RentalModel = {
                     severity: 'danger'
                 });
             }
+        }
+    }
+
+    // --- NEW: Check MOT Expiry ---
+    const carsWithMot = await db.collection('cars').find({ 
+        mot_expiry: { $exists: true, $nin: [null, ""] } 
+    }).toArray();
+    
+    const now = getNow();
+    const fourDaysFromNow = new Date(now.getTime() + 4 * 24 * 60 * 60 * 1000);
+    
+    for (const car of carsWithMot) {
+        if (!car.mot_expiry) continue;
+        const expiryDate = new Date(car.mot_expiry);
+        
+        if (isNaN(expiryDate.getTime())) continue;
+
+        if (expiryDate < now) {
+             notifications.push({
+                type: 'mot_expired',
+                car: { model: car.model, plate_number: car.plate_number, mot_expiry: car.mot_expiry },
+                severity: 'danger'
+            });
+        } else if (expiryDate <= fourDaysFromNow) {
+             notifications.push({
+                type: 'mot_expiring_soon',
+                car: { model: car.model, plate_number: car.plate_number, mot_expiry: car.mot_expiry },
+                severity: 'warning'
+            });
         }
     }
 

@@ -26,14 +26,14 @@ export async function POST(request: NextRequest) {
   }
 
   const body = await request.json();
-  const { model, plate_number } = body;
+  const { model, plate_number, mot_expiry } = body;
 
   if (!model || !plate_number) {
     return NextResponse.json({ error: 'Missing fields' }, { status: 400 });
   }
 
   try {
-    await CarModel.create(model, plate_number);
+    await CarModel.create(model, plate_number, mot_expiry);
     return NextResponse.json({ success: true });
   } catch (error) {
     return NextResponse.json({ error: 'Failed to create car' }, { status: 500 });
@@ -47,13 +47,13 @@ export async function PUT(request: NextRequest) {
   }
 
   const body = await request.json();
-  const { id, model, plate_number, status } = body;
+  const { id, model, plate_number, status, mot_expiry } = body;
 
   try {
     if (status) {
       await CarModel.updateStatus(id, status);
     } else if (model && plate_number) {
-      await CarModel.update(id, model, plate_number);
+      await CarModel.update(id, model, plate_number, mot_expiry);
     }
     return NextResponse.json({ success: true });
   } catch (error) {

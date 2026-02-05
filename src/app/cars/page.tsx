@@ -11,6 +11,7 @@ interface Car {
   _id: string;
   model: string;
   plate_number: string;
+  mot_expiry?: string;
   status: 'available' | 'rented' | 'reserved';
   current_rental?: {
     _id: string;
@@ -35,7 +36,7 @@ export default function CarsPage() {
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
   const [editingCar, setEditingCar] = useState<Car | null>(null);
-  const [formData, setFormData] = useState({ model: '', plate_number: '' });
+  const [formData, setFormData] = useState<{ model: string; plate_number: string; mot_expiry?: string }>({ model: '', plate_number: '', mot_expiry: '' });
   const [message, setMessage] = useState<{ type: string; text: string } | null>(null);
 
   // Reservation Modal State
@@ -151,7 +152,7 @@ export default function CarsPage() {
       showMessage_('success', t.success);
       setShowModal(false);
       setEditingCar(null);
-      setFormData({ model: '', plate_number: '' });
+      setFormData({ model: '', plate_number: '', mot_expiry: '' });
       fetchCars();
     } catch (error) {
       showMessage_('danger', t.error);
@@ -250,7 +251,7 @@ export default function CarsPage() {
 
   const openEditModal = (car: Car) => {
     setEditingCar(car);
-    setFormData({ model: car.model, plate_number: car.plate_number });
+    setFormData({ model: car.model, plate_number: car.plate_number, mot_expiry: car.mot_expiry || '' });
     setShowModal(true);
   };
 
@@ -377,6 +378,12 @@ export default function CarsPage() {
                                      <span>Total Rented: {formatTotalDuration((car as any).total_rented_ms)}</span>
                                   </div>
                                )}
+                               {car.mot_expiry && (
+                                  <div className={`d-flex align-items-center mt-1 ${new Date(car.mot_expiry) < new Date() ? 'text-danger fw-bold' : 'text-muted'}`}>
+                                     <i className="bi bi-tools me-2 opacity-50"></i>
+                                     <span>{t.mot_expiry || 'MOT'}: {new Date(car.mot_expiry).toLocaleDateString()}</span>
+                                  </div>
+                               )}
                             </div>
                         )}
 
@@ -421,6 +428,7 @@ export default function CarsPage() {
                       <th className="border-0 py-3 ps-4 text-secondary text-uppercase small bg-transparent">#</th>
                       <th className="border-0 py-3 text-secondary text-uppercase small bg-transparent">{t.car_model}</th>
                       <th className="border-0 py-3 text-secondary text-uppercase small bg-transparent d-none d-md-table-cell">{t.plate_number}</th>
+                      <th className="border-0 py-3 text-secondary text-uppercase small bg-transparent d-none d-lg-table-cell">{t.mot_expiry || 'MOT'}</th>
                       <th className="border-0 py-3 text-secondary text-uppercase small bg-transparent">{t.status}</th>
                       <th className="border-0 py-3 text-secondary text-uppercase small bg-transparent text-end pe-4">{t.actions}</th>
                     </tr>
@@ -451,6 +459,15 @@ export default function CarsPage() {
                               </small>
                             )}
                           </div>
+                        </td>
+                        <td className="d-none d-lg-table-cell">
+                          {car.mot_expiry ? (
+                              <span className={`badge ${new Date(car.mot_expiry) < new Date() ? 'bg-danger bg-opacity-10 text-danger' : 'bg-light text-dark border'}`}>
+                                  {new Date(car.mot_expiry).toLocaleDateString()}
+                              </span>
+                          ) : (
+                              <span className="text-muted small">-</span>
+                          )}
                         </td>
                         <td>
                           {car.status === 'available' && <span className="badge bg-success bg-opacity-10 text-success rounded-pill px-3 py-2">{t.available}</span>}
@@ -570,6 +587,10 @@ export default function CarsPage() {
                       <label className="form-label">{t.plate_number}</label>
                       <input type="text" className="form-control" value={formData.plate_number} onChange={(e) => setFormData({ ...formData, plate_number: e.target.value })} required />
                     </div>
+                    <div className="mb-3">
+                      <label className="form-label">{t.mot_expiry || 'MOT Expiry'}</label>
+                      <input type="date" className="form-control" value={formData.mot_expiry || ''} onChange={(e) => setFormData({ ...formData, mot_expiry: e.target.value })} />
+                    </div>
                   </div>
                   <div className="modal-footer">
                     <button type="button" className="btn btn-secondary" onClick={() => setShowModal(false)}>{t.cancel}</button>
@@ -631,7 +652,7 @@ export default function CarsPage() {
         <button 
           className="btn btn-primary rounded-circle shadow-lg d-flex align-items-center justify-content-center position-fixed animate-fade-in-up" 
           style={{ width: '60px', height: '60px', bottom: '90px', right: '20px', zIndex: 1050 }}
-          onClick={() => { setEditingCar(null); setFormData({ model: '', plate_number: '' }); setShowModal(true); }}
+          onClick={() => { setEditingCar(null); setFormData({ model: '', plate_number: '', mot_expiry: '' }); setShowModal(true); }}
         >
            <i className="bi bi-plus-lg fs-2"></i>
         </button>

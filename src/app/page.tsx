@@ -9,12 +9,17 @@ import { toBusinessInputString } from '@/lib/timezone';
 
 interface Notification {
   type: string;
-  rental: {
+  rental?: {
     start_date: string;
     return_date: string;
     model: string;
     plate_number: string;
     full_name: string;
+  };
+  car?: {
+    model: string;
+    plate_number: string;
+    mot_expiry: string;
   };
   severity: string;
 }
@@ -308,35 +313,68 @@ export default function DashboardPage() {
 
                 let dateLabel = '';
                 let dateValue = '';
+                let personName = '';
 
                 switch (notif.type) {
                   case 'overdue':
                     bgColor = 'bg-danger';
                     icon = 'bi-exclamation-triangle';
-                    title = `${t.overdue}: ${notif.rental.model}`;
-                    dateLabel = t.return_date || 'Return';
-                    dateValue = notif.rental.return_date;
+                    if (notif.rental) {
+                        title = `${t.overdue}: ${notif.rental.model}`;
+                        dateLabel = t.return_date || 'Return';
+                        dateValue = notif.rental.return_date;
+                        personName = notif.rental.full_name;
+                    }
                     break;
                   case 'start_today':
                     bgColor = 'bg-success';
                     icon = 'bi-clock';
-                    title = `${t.start_today}: ${notif.rental.model}`;
-                    dateLabel = t.start_date || 'Start';
-                    dateValue = notif.rental.start_date;
+                    if (notif.rental) {
+                        title = `${t.start_today}: ${notif.rental.model}`;
+                        dateLabel = t.start_date || 'Start';
+                        dateValue = notif.rental.start_date;
+                        personName = notif.rental.full_name;
+                    }
                     break;
                    case 'start_tomorrow':
                     bgColor = 'bg-info'; 
                     icon = 'bi-calendar-plus';
-                    title = `${t.start_tomorrow}: ${notif.rental.model}`;
-                    dateLabel = t.start_date || 'Start';
-                    dateValue = notif.rental.start_date;
+                    if (notif.rental) {
+                        title = `${t.start_tomorrow}: ${notif.rental.model}`;
+                        dateLabel = t.start_date || 'Start';
+                        dateValue = notif.rental.start_date;
+                        personName = notif.rental.full_name;
+                    }
                     break;
                   case 'return_today':
                     bgColor = 'bg-warning';
                     icon = 'bi-arrow-return-left';
-                    title = `${t.return_today}: ${notif.rental.model}`;
-                    dateLabel = t.return_date || 'Return';
-                    dateValue = notif.rental.return_date;
+                    if (notif.rental) {
+                        title = `${t.return_today}: ${notif.rental.model}`;
+                        dateLabel = t.return_date || 'Return';
+                        dateValue = notif.rental.return_date;
+                        personName = notif.rental.full_name;
+                    }
+                    break;
+                  case 'mot_expired':
+                    bgColor = 'bg-danger';
+                    icon = 'bi-tools';
+                    if (notif.car) {
+                        title = `${t.mot_expired || 'MOT Expired'}: ${notif.car.model}`;
+                        dateLabel = t.mot_expiry || 'Expiry';
+                        dateValue = notif.car.mot_expiry;
+                        personName = notif.car.plate_number;
+                    }
+                    break;
+                  case 'mot_expiring_soon':
+                    bgColor = 'bg-warning';
+                    icon = 'bi-tools';
+                    if (notif.car) {
+                        title = `${t.mot_expiring_soon || 'MOT Expiring Soon'}: ${notif.car.model}`;
+                        dateLabel = t.mot_expiry || 'Expiry';
+                        dateValue = notif.car.mot_expiry;
+                        personName = notif.car.plate_number;
+                    }
                     break;
                   default:
                     bgColor = 'bg-secondary';
@@ -352,8 +390,8 @@ export default function DashboardPage() {
                       <h6 className="mb-1 fw-bold" style={{ fontSize: '1rem' }}>{title}</h6>
                       <div className="d-flex align-items-center opacity-75 small">
                          <div className="d-flex align-items-center me-3">
-                            <i className="bi bi-person-fill me-1"></i>
-                            <span>{notif.rental.full_name}</span>
+                            <i className={notif.car ? "bi bi-car-front-fill me-1" : "bi bi-person-fill me-1"}></i>
+                            <span>{personName}</span>
                          </div>
                          <div className="d-flex align-items-center">
                             <i className="bi bi-calendar-event-fill me-1"></i>
