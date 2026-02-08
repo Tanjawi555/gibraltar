@@ -259,7 +259,7 @@ export default function ContractPage() {
           <div className="flex flex-col md:flex-row print:flex-row justify-between items-center pb-4 mb-2 print:pb-0 print:mb-0 border-black gap-4 md:gap-0">
                {/* Left: French Info */}
                <div className="text-center md:text-left w-full md:w-[40%] tracking-wide">
-                   <h1 className="text-2xl md:text-3xl print:text-xl font-black uppercase tracking-tight mb-1 print:mb-0 leading-none text-black m-0">NARENOS CAR</h1>
+                   <h1 className="text-2xl md:text-3xl print:text-xl font-black uppercase tracking-tight mb-1 print:mb-0 leading-none text-black m-0">Gibraltar CAR</h1>
                    <div className="text-[11px] font-bold text-black space-y-0.5">
                         <p className="leading-tight m-0">Hay Lakesibate Rue 1 N° 13 - Tanger</p>
                         <p className="leading-tight m-0">GSM : 06 63 20 33 66 - 06 88 63 00 06</p>
@@ -270,8 +270,8 @@ export default function ContractPage() {
                 <div className="w-full md:w-[20%] flex justify-center items-center px-4">
                     <div className="relative w-24 h-24 md:w-28 md:h-28 print:w-32 print:h-32">
                          <img 
-                            src="/narenos-logo.jpg" 
-                            alt="Narenos Logo" 
+                            src="/gibraltar-logo.jpg" 
+                            alt="Gibraltar Logo" 
                             className="w-full h-full object-contain"
                             style={{ filter: 'grayscale(100%) invert(100%) contrast(150%)' }} 
                          />
@@ -620,7 +620,7 @@ export default function ContractPage() {
                             </div>
                             
                             <div className="font-black text-xl tracking-[0.2em] text-black mb-1 text-center w-full uppercase">
-                                NARENOS
+                                Gibraltar
                             </div>
                             <div 
                                  className="w-full h-24 print:h-16 border-2 border-black rounded-lg cursor-pointer relative flex items-center justify-center hover:bg-gray-50 bg-white shadow-none transition-colors"

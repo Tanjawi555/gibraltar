@@ -108,10 +108,10 @@ export default function ClientsPage() {
   };
 
   const uploadToCloudinary = async (file: File, publicId?: string): Promise<string | null> => {
-    const url = `https://api.cloudinary.com/v1_1/da0h6izcq/image/upload`;
+    const url = `https://api.cloudinary.com/v1_1/dduryumsi/image/upload`;
     const formData = new FormData();
     formData.append('file', file);
-    formData.append('upload_preset', 'narenos');
+    formData.append('upload_preset', 'gibraltar');
     if (publicId) {
         formData.append('public_id', publicId);
     }
