@@ -21,7 +21,7 @@ export default function LoginPage() {
       setLang(savedLang);
       setT(getTranslations(savedLang));
     }
-    fetch('/api/init');
+    // Database initialization moved to auth flow for security
   }, []);
 
   useEffect(() => {
@@ -96,10 +96,13 @@ export default function LoginPage() {
                     type="text"
                     className="form-control"
                     id="username"
+                    name="username"
                     value={username}
                     onChange={(e) => setUsername(e.target.value)}
+                    autoComplete="username"
                     required
                     autoFocus
+                    aria-label="Username"
                   />
                 </div>
                 <div className="mb-3">
@@ -110,9 +113,12 @@ export default function LoginPage() {
                     type="password"
                     className="form-control"
                     id="password"
+                    name="password"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
+                    autoComplete="current-password"
                     required
+                    aria-label="Password"
                   />
                 </div>
                 <button
