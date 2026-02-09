@@ -353,9 +353,9 @@ export default function RentalsPage() {
                         <button onClick={() => handleEdit(rental)} className="btn btn-sm btn-light text-primary" title={t.edit}>
                           <i className="bi bi-pencil-fill"></i>
                         </button>
-                        <button onClick={() => router.push(`/rentals/${rental._id}/contract`)} className="btn btn-sm btn-light text-dark" title={t.contract}>
+                        {/* <button onClick={() => router.push(`/rentals/${rental._id}/contract`)} className="btn btn-sm btn-light text-dark" title={t.contract}>
                           <i className="bi bi-file-text-fill"></i>
-                        </button>
+                        </button> */}
                         <button onClick={() => handleDelete(rental._id)} className="btn btn-sm btn-light text-danger" title={t.delete}>
                           <i className="bi bi-trash-fill"></i>
                         </button>
@@ -443,9 +443,9 @@ export default function RentalsPage() {
                             <button onClick={() => handleEdit(rental)} className="btn btn-sm btn-light text-primary me-1" title={t.edit}>
                               <i className="bi bi-pencil-fill fs-6"></i>
                             </button>
-                            <button onClick={() => router.push(`/rentals/${rental._id}/contract`)} className="btn btn-sm btn-light text-dark me-1" title={t.contract}>
+                            {/* <button onClick={() => router.push(`/rentals/${rental._id}/contract`)} className="btn btn-sm btn-light text-dark me-1" title={t.contract}>
                               <i className="bi bi-file-text-fill fs-6"></i>
-                            </button>
+                            </button> */}
                             <button onClick={() => handleDelete(rental._id)} className="btn btn-sm btn-light text-danger" title={t.delete}>
                               <i className="bi bi-trash-fill fs-6"></i>
                             </button>
