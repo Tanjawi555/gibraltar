@@ -138,14 +138,23 @@ export default function ClientsPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Manual validation to ensure feedback on all devices (especially iOS)
+    if (!formData.full_name || !formData.full_name.trim()) {
+      showMessage_('danger', t.fill_required || 'Please fill in the full name');
+      return;
+    }
+
     setUploading(true);
-    try {
+    
+    // Helper function moved to top for clarity
     const getPublicId = (type: string, suffix: string) => {
         const cleanName = formData.full_name.trim().replace(/[^a-zA-Z0-9]/g, '_') || 'client';
         const dateStr = new Date().toISOString().slice(0, 19).replace(/[:T]/g, '-');
         return `${cleanName}_${type}_${suffix}_${dateStr}`;
     };
 
+    try {
       // Handle Passport Images
       let currentPassportImages = editingClient?.passport_image ? editingClient.passport_image.split(',') : [];
       let passportFrontUrl = currentPassportImages[0] || '';
@@ -182,8 +191,9 @@ export default function ClientsPage() {
       const licenseArray = [licenseFrontUrl, licenseBackUrl];
       const license_image = licenseArray.every(u => !u) ? '' : licenseArray.join(',');
 
+      let res;
       if (editingClient) {
-        await fetch('/api/clients', {
+        res = await fetch('/api/clients', {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ 
@@ -194,25 +204,30 @@ export default function ClientsPage() {
           }),
         });
       } else {
-        await fetch('/api/clients', {
+        res = await fetch('/api/clients', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ ...formData, passport_image, license_image }),
         });
       }
+
+      if (!res.ok) {
+        const errorData = await res.json();
+        throw new Error(errorData.error || 'Failed to save client');
+      }
+
       showMessage_('success', t.success);
       setShowModal(false);
       setEditingClient(null);
-      setEditingClient(null);
       setFormData({ full_name: '', address: '', passport_id: '', driving_license: '', id_number: '', date_of_birth: '', license_expiry_date: '', passport_expiry_date: '' });
-      setPassportFrontFile(null);
       setPassportFrontFile(null);
       setPassportBackFile(null);
       setLicenseFrontFile(null);
       setLicenseBackFile(null);
       fetchClients();
     } catch (error) {
-      showMessage_('danger', t.error);
+      console.error('Submit error:', error);
+      showMessage_('danger', (error as Error).message || t.error);
     } finally {
       setUploading(false);
     }
@@ -535,7 +550,7 @@ export default function ClientsPage() {
                   <div className="modal-body">
                       <div className="mb-3">
                         <label className="form-label">{t.full_name}</label>
-                        <input type="text" className="form-control" value={formData.full_name} onChange={(e) => setFormData({ ...formData, full_name: e.target.value })} required />
+                        <input type="text" className="form-control" value={formData.full_name} onChange={(e) => setFormData({ ...formData, full_name: e.target.value })} />
                       </div>
 
                       <div className="mb-3">

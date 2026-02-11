@@ -115,6 +115,7 @@ export interface Translations {
   service_technic: string;
   mot_expired: string;
   mot_expiring_soon: string;
+  fill_required: string;
 }
 
 const TRANSLATIONS: Record<Language, Translations> = {
@@ -233,6 +234,7 @@ const TRANSLATIONS: Record<Language, Translations> = {
     service_technic: 'الصيانة الفنية',
     mot_expired: 'انتهى الفحص الفني',
     mot_expiring_soon: 'الفحص ينتهي قريباً',
+    fill_required: 'يرجى ملء جميع الحقول المطلوبة',
   },
   en: {
     app_name: 'Car Rental System',
@@ -349,6 +351,7 @@ const TRANSLATIONS: Record<Language, Translations> = {
     service_technic: 'Technical Service',
     mot_expired: 'MOT Expired',
     mot_expiring_soon: 'MOT Expiring Soon',
+    fill_required: 'Please fill all required fields',
   },
   fr: {
     app_name: 'Système de Location de Voitures',
@@ -465,6 +468,7 @@ const TRANSLATIONS: Record<Language, Translations> = {
     service_technic: 'Service Technique',
     mot_expired: 'Visite Technique Expirée',
     mot_expiring_soon: 'Visite Technique Expire Bientôt',
+    fill_required: 'Veuillez remplir tous les champs obligatoires',
   },
 };
 
