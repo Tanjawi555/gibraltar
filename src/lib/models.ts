@@ -211,22 +211,28 @@ export const CarModel = {
     return db.collection<Car>('cars').findOne({ _id: new ObjectId(id) });
   },
 
-  async create(model: string, plate_number: string) {
+  async create(model: string, plate_number: string, mot_expiry?: string) {
     const db = await getDatabase();
-    const result = await db.collection<Car>('cars').insertOne({
+    const doc: Car = {
       model,
       plate_number,
       status: 'available',
       created_at: new Date(),
-    });
+    };
+    if (mot_expiry) doc.mot_expiry = mot_expiry;
+    
+    const result = await db.collection<Car>('cars').insertOne(doc);
     return result;
   },
 
-  async update(id: string, model: string, plate_number: string) {
+  async update(id: string, model: string, plate_number: string, mot_expiry?: string) {
     const db = await getDatabase();
+    const updateData: Partial<Car> = { model, plate_number };
+    if (mot_expiry) updateData.mot_expiry = mot_expiry;
+    
     return db.collection<Car>('cars').updateOne(
       { _id: new ObjectId(id) },
-      { $set: { model, plate_number } }
+      { $set: updateData }
     );
   },
 
