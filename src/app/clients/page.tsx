@@ -108,10 +108,12 @@ export default function ClientsPage() {
   };
 
   const uploadToCloudinary = async (file: File, publicId?: string): Promise<string | null> => {
-    const url = `https://api.cloudinary.com/v1_1/dduryumsi/image/upload`;
+    // Determine the upload URL (internal API route)
+    const url = '/api/upload/cloudinary';
+    
     const formData = new FormData();
     formData.append('file', file);
-    formData.append('upload_preset', 'gibraltar');
+    formData.append('upload_preset', 'gibraltar'); // Optional, handled on server if needed
     if (publicId) {
         formData.append('public_id', publicId);
     }
@@ -119,16 +121,23 @@ export default function ClientsPage() {
     try {
       const res = await fetch(url, {
         method: 'POST',
+        // DO NOT set Content-Type header when using FormData
+        // The browser (and Safari) will automatically set it with the correct boundary
         body: formData,
       });
 
       if (!res.ok) {
-        const error = await res.json();
-        throw new Error(error.error?.message || 'Upload failed');
+        // Try to parse error message
+        let errorMessage = 'Upload failed';
+        try {
+            const errorData = await res.json();
+            errorMessage = errorData.error || errorMessage;
+        } catch (e) { /* ignore json parse error */ }
+        throw new Error(errorMessage);
       }
 
       const data = await res.json();
-      return data.secure_url;
+      return data.secure_url || data.url;
     } catch (error) {
       console.error('Cloudinary upload error:', error);
       showMessage_('danger', `Upload failed: ${(error as Error).message}`);

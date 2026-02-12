@@ -205,7 +205,7 @@ export async function DELETE(request: NextRequest) {
 
         if (hasKey && hasSecret) {
             cloudinary.config({
-                cloud_name: 'da0h6izcq',
+                cloud_name: 'dduryumsi',
                 api_key: process.env.CLOUDINARY_API_KEY,
                 api_secret: process.env.CLOUDINARY_API_SECRET
             });
