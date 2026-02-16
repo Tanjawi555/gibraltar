@@ -39,6 +39,10 @@ export default function CarsPage() {
   const [formData, setFormData] = useState<{ model: string; plate_number: string; mot_expiry?: string }>({ model: '', plate_number: '', mot_expiry: '' });
   const [message, setMessage] = useState<{ type: string; text: string } | null>(null);
 
+  // Client Search State
+  const [clientSearch, setClientSearch] = useState('');
+  const [showClientDropdown, setShowClientDropdown] = useState(false);
+
   // Reservation Modal State
   const [showReservationModal, setShowReservationModal] = useState(false);
   const [modalMode, setModalMode] = useState<'reserve' | 'rent' | 'edit'>('reserve');
@@ -117,6 +121,18 @@ export default function CarsPage() {
         fetchClients();
     }
   }, [showReservationModal]);
+
+  // Sync client name when editing or viewing existing reservation
+  useEffect(() => {
+    if (showReservationModal && reservationData.client_id && clients.length > 0) {
+        const client = clients.find(c => c._id === reservationData.client_id);
+        if (client) {
+            setClientSearch(client.full_name);
+        }
+    } else if (showReservationModal && !reservationData.client_id) {
+        setClientSearch('');
+    }
+  }, [reservationData.client_id, clients, showReservationModal]);
 
   const handleLanguageChange = (newLang: Language) => {
     setLang(newLang);
@@ -612,14 +628,47 @@ export default function CarsPage() {
                                 <button type="button" className="btn-close" onClick={() => setShowReservationModal(false)} />
                             </div>
                             <div className="modal-body">
-                                <div className="mb-3">
+                                <div className="mb-3 position-relative">
                                     <label className="form-label">{t.select_client || 'Client'}</label>
-                                    <select className="form-select" value={reservationData.client_id} onChange={(e) => setReservationData({ ...reservationData, client_id: e.target.value })} required>
-                                        <option value="">-- Select Client --</option>
-                                        {clients.map(client => (
-                                            <option key={client._id} value={client._id}>{client.full_name}</option>
-                                        ))}
-                                    </select>
+                                    <input
+                                        type="text"
+                                        className="form-control"
+                                        placeholder={t.search_client || "Search Client..."}
+                                        value={clientSearch}
+                                        onChange={(e) => {
+                                            setClientSearch(e.target.value);
+                                            setShowClientDropdown(true);
+                                            // Optional: reset client_id if user modifies text, forcing re-selection
+                                            // setReservationData({ ...reservationData, client_id: '' }); 
+                                        }}
+                                        onFocus={() => setShowClientDropdown(true)}
+                                        onBlur={() => setTimeout(() => setShowClientDropdown(false), 200)}
+                                    />
+                                    {showClientDropdown && (
+                                        <div className="card position-absolute w-100 shadow-sm overflow-auto" style={{ zIndex: 1050, maxHeight: '200px', top: '100%' }}>
+                                            <ul className="list-group list-group-flush">
+                                                {clients
+                                                    .filter(c => c.full_name.toLowerCase().includes(clientSearch.toLowerCase()))
+                                                    .map(client => (
+                                                    <li 
+                                                        key={client._id} 
+                                                        className="list-group-item list-group-item-action cursor-pointer"
+                                                        onMouseDown={(e) => {
+                                                            e.preventDefault(); // Prevent blur before click
+                                                            setReservationData({ ...reservationData, client_id: client._id });
+                                                            setClientSearch(client.full_name);
+                                                            setShowClientDropdown(false);
+                                                        }}
+                                                    >
+                                                        {client.full_name}
+                                                    </li>
+                                                ))}
+                                                {clients.filter(c => c.full_name.toLowerCase().includes(clientSearch.toLowerCase())).length === 0 && (
+                                                    <li className="list-group-item text-muted small">No clients found</li>
+                                                )}
+                                            </ul>
+                                        </div>
+                                    )}
                                     {clients.length === 0 && <small className="text-muted">No clients found. Add a client first.</small>}
                                 </div>
                                 <div className="mb-3">

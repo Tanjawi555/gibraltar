@@ -1,6 +1,7 @@
 export type Language = 'ar' | 'en' | 'fr';
 
 export interface Translations {
+  search_client: string;
   app_name: string;
   login: string;
   logout: string;
